@@ -1,0 +1,208 @@
+# Production stack: app + portal + api behind your own TLS terminator.
+#
+# Intended for a single EC2 instance with an external managed Postgres (RDS).
+# Postgres is deliberately NOT a service here — see DEPLOY_AWS.md for why.
+#
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml run --rm migrator
+#   docker compose -f docker-compose.prod.yml up -d app portal api
+#
+# NEXT_PUBLIC_* are baked into the JS bundle at BUILD time, so they are build
+# args, not runtime env. Changing them requires a rebuild, not a restart.
+# Export them (or use a .env file next to this compose file) before building:
+#
+#   export BETTER_AUTH_URL=https://app.example.com
+#   export BETTER_AUTH_URL_PORTAL=https://portal.example.com
+#   export API_URL=https://api.example.com
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+    compress: 'true'
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+# Direct RDS connections present a regional Amazon RDS CA that is NOT in Node's
+# default trust store, so TLS fails with P1011 "self signed certificate in
+# certificate chain". NODE_EXTRA_CA_CERTS *augments* the default store (unlike
+# ssl.ca, which replaces it), so both the RDS CAs and Amazon Root CA 1 are
+# trusted. Fetch the bundle with:
+#   curl -fsSL -o certs/rds-global-bundle.pem \
+#     https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+x-rds-ca: &rds-ca
+  NODE_EXTRA_CA_CERTS: /app/certs/rds-global-bundle.pem
+
+x-rds-ca-mount: &rds-ca-mount
+  - ./certs/rds-global-bundle.pem:/app/certs/rds-global-bundle.pem:ro
+
+services:
+  # ---------------------------------------------------------------------------
+  # One-shot: apply migrations. Run before starting app/portal/api on a new
+  # release. Exits 0 when the database is up to date.
+  # ---------------------------------------------------------------------------
+  migrator:
+    image: comp-migrator:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    volumes: *rds-ca-mount
+    environment:
+      <<: *rds-ca
+    env_file:
+      - packages/db/.env
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # One-shot: seed framework/control/policy templates. Required once on a fresh
+  # database, otherwise organisations are created with no frameworks to select.
+  # Safe to re-run; it upserts.
+  # ---------------------------------------------------------------------------
+  # Note: the schema is copied to /app before generating. Prisma resolves the
+  # @prisma/client output directory relative to the schema file, so generating
+  # in place writes to node_modules/@trycompai/db/node_modules/@prisma/client
+  # while seed.ts imports the top-level @prisma/client — which stays a stub and
+  # throws "@prisma/client did not initialize yet".
+  seeder:
+    image: comp-migrator:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    volumes: *rds-ca-mount
+    environment:
+      <<: *rds-ca
+    env_file:
+      - packages/db/.env
+    command: sh -lc "bun packages/db/scripts/generate-prisma-client-js.js && bun packages/db/prisma/seed/seed.ts"
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # NestJS API. Auth lives here: if this is down, every page in the app 500s
+  # with ECONNREFUSED. Start it before app/portal.
+  # ---------------------------------------------------------------------------
+  api:
+    image: comp-api:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    ports:
+      - '3333:3333'
+    volumes: *rds-ca-mount
+    environment:
+      <<: *rds-ca
+    env_file:
+      - apps/api/.env
+    <<: *default-restart
+    healthcheck:
+      test: ['CMD-SHELL', 'bun -e "fetch(\"http://localhost:3333/api/auth/get-session\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+
+  app:
+    image: comp-app:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+      args:
+        NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+        NEXT_PUBLIC_PORTAL_URL: ${BETTER_AUTH_URL_PORTAL}
+        NEXT_PUBLIC_API_URL: ${API_URL}
+    ports:
+      - '3000:3000'
+    volumes: *rds-ca-mount
+    environment:
+      <<: *rds-ca
+      # Next standalone binds to $HOSTNAME, which Docker sets to the
+      # container id; without this, in-container healthchecks hit a refused
+      # 127.0.0.1 even though the published port works.
+      HOSTNAME: 0.0.0.0
+    env_file:
+      - apps/app/.env
+    depends_on:
+      api:
+        condition: service_healthy
+    <<: *default-restart
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:3000/api/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  portal:
+    image: comp-portal:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: portal
+      args:
+        NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL_PORTAL}
+    ports:
+      - '3002:3000'
+    volumes: *rds-ca-mount
+    environment:
+      <<: *rds-ca
+      # Next standalone binds to $HOSTNAME, which Docker sets to the
+      # container id; without this, in-container healthchecks hit a refused
+      # 127.0.0.1 even though the published port works.
+      HOSTNAME: 0.0.0.0
+    env_file:
+      - apps/portal/.env
+    depends_on:
+      api:
+        condition: service_healthy
+    <<: *default-restart
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:3000/ || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # Remote MCP endpoint (Streamable HTTP) so claude.ai / the mobile app can
+  # drive compliance. Local clients (Desktop, Claude Code, Cursor) do NOT need
+  # this — they spawn `mcp start` over stdio themselves.
+  #
+  # Uses the published npm package rather than a Dockerfile stage:
+  # apps/mcp-server is excluded from the bun workspace and versioned
+  # separately, so building it from source here would fight that.
+  #
+  # NOT started by default. Bring it up explicitly once you have decided on the
+  # auth model below:
+  #   docker compose -f docker-compose.prod.yml up -d mcp
+  #
+  # MCP_API_KEY holds a Comp API key. RBAC applies to it, so scope it to what
+  # the assistant may do (read-only + task:update is a sensible ceiling).
+  # Swap in --no-static-auth to require per-request credentials instead of
+  # baking the key in; with the key baked in, anyone who reaches this port
+  # inherits its permissions.
+  # ---------------------------------------------------------------------------
+  mcp:
+    image: node:22-alpine
+    working_dir: /srv
+    command: >
+      sh -lc "npx -y @trycompai/mcp-server serve
+      --port 2718
+      --server-url $${API_URL}
+      --apikey $${MCP_API_KEY}
+      --log-level info"
+    environment:
+      API_URL: ${API_URL}
+      MCP_API_KEY: ${MCP_API_KEY:-}
+    ports:
+      - '2718:2718'
+    profiles: ['mcp']
+    restart: unless-stopped
+    logging: *default-logging

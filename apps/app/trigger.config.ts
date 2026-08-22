@@ -1,10 +1,11 @@
 import { puppeteer } from '@trigger.dev/build/extensions/puppeteer';
 import { defineConfig } from '@trigger.dev/sdk';
+import { caBundleExtension } from './caBundleExtension';
 import { prismaExtension } from './customPrismaExtension';
 
 export default defineConfig({
   runtime: 'node-22',
-  project: 'proj_lhxjliiqgcdyqbgtucda',
+  project: 'proj_dnatjuchdyjcqxxmfike',
   logLevel: 'log',
   // PrismaInstrumentation was emitting a `prisma:client:operation` span for
   // every query, drowning out our own task logs. We rely on per-task
@@ -14,6 +15,7 @@ export default defineConfig({
   maxDuration: 300, // 5 minutes
   build: {
     extensions: [
+      caBundleExtension(),
       prismaExtension({
         version: '7.6.0',
         dbPackageVersion: '^2.0.0',
