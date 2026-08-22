@@ -10,6 +10,20 @@ const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === 'true';
 const workspaceRoot = path.join(__dirname, '..', '..');
 
 const config: NextConfig = {
+  // Opt-in escape hatch for the Docker image build only.
+  //
+  // `next build` type-checks in worker threads. Under Bun those workers ignore
+  // the `resourceLimits` cap ("worker_threads.Worker option resourceLimits is
+  // not yet implemented in Bun"), so they grow past the container's memory and
+  // the build dies with `ResourceExhausted: cannot allocate memory` — after
+  // compiling successfully, which makes it look like a compile problem.
+  //
+  // Types are still enforced: `bun run typecheck` / `bunx tsc --noEmit` in CI
+  // and locally. Only the image build sets SKIP_TYPE_CHECK, so a normal
+  // `next build` keeps checking types.
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
+  },
   // Ensure Turbopack can import .md files as raw strings during dev
   turbopack: {
     root: workspaceRoot,

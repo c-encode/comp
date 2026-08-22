@@ -1,3 +1,17 @@
+// Datasource + generator ONLY. Do not add models here.
+//
+// `prisma generate --schema=prisma/schema` (see prisma.config.ts) loads EVERY
+// .prisma file in this directory; the models come from the 54 sibling files that
+// `bun run db:getschema` copies out of packages/db/prisma/schema. That script
+// excludes schema.prisma from both its delete and its copy step, which is why
+// this file survives a resync and must stay header-only.
+//
+// If a combined schema (the output of packages/db/scripts/combine-schemas.js or
+// generate-prisma-client-js.js) is ever written here, every model is defined
+// twice and `prisma generate` fails with "Validation Error Count: 226". Docker
+// layer caching hides this until something invalidates the build step, so the
+// failure can surface long after the file was clobbered.
+
 generator client {
   provider        = "prisma-client"
   output          = "../src/generated/prisma"

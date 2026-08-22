@@ -175,3 +175,8 @@ test-results/
 **/*.dylib*
 **/*.node
 **/*.pack
+
+# Monorepo depth: `.next/` and `*/.next/` do not match apps/app/.next
+# (9.4GB of local build output was being sent in the build context).
+**/.next/
+**/.turbo/
