@@ -51,6 +51,23 @@ export default async function SetupWithIdPage({ params, searchParams }: SetupPag
     },
   });
 
+  // Defence in depth behind /setup/route.ts: that route refuses to mint a setup
+  // session for anyone not allowlisted, but a session minted earlier (before the
+  // allowlist was set, or still unexpired) must not render the form either.
+  const orgCreators = (process.env.ORG_CREATION_ALLOWED_EMAILS ?? '')
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (
+    orgCreators.length > 0 &&
+    !orgCreators.includes(user.email?.toLowerCase() ?? '')
+  ) {
+    // `/` is safe only when they already belong somewhere; otherwise the
+    // landing page would route them back to /setup and loop.
+    return redirect(existingOrgCount > 0 ? '/' : '/auth/access-removed');
+  }
+
   return (
     <div className="flex flex-1 min-h-0">
       {/* Form Section - Left Side */}

@@ -20,7 +20,7 @@ import {
   organization,
 } from 'better-auth/plugins';
 import { ac, allRoles } from '@trycompai/auth';
-import { createAuthMiddleware } from 'better-auth/api';
+import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { Redis } from '@upstash/redis';
 import type { AccessControl } from 'better-auth/plugins/access';
 import {
@@ -48,9 +48,24 @@ const MAGIC_LINK_EXPIRES_IN_SECONDS = 60 * 60; // 1 hour
 
 /**
  * Determine the cookie domain based on environment.
+ *
+ * Self-hosted deployments serve the app, portal and API from sibling subdomains
+ * of a domain that is not trycomp.ai. Returning undefined there leaves the
+ * session cookie host-only to the API's hostname, so the browser never sends it
+ * to the app and sign-in silently fails to persist. (This does not reproduce on
+ * localhost, where cookies are shared across ports on the same host.)
+ *
+ * AUTH_COOKIE_DOMAIN opts a self-hosted deployment into cross-subdomain
+ * cookies, e.g. ".compliance.example.com". Leave it unset to keep the previous
+ * behaviour exactly.
  */
 function getCookieDomain(): string | undefined {
   const baseUrl = process.env.BASE_URL || '';
+
+  const explicit = process.env.AUTH_COOKIE_DOMAIN?.trim();
+  if (explicit) {
+    return explicit;
+  }
 
   if (baseUrl.includes('staging.trycomp.ai')) {
     return '.staging.trycomp.ai';
@@ -304,6 +319,86 @@ export const auth = betterAuth({
     }),
   },
   databaseHooks: {
+    // Restrict who may ever become a user. This runs on every signup path
+    // (magic link, OTP, OAuth, admin-created), so it is one choke point
+    // rather than a guard bolted onto each plugin.
+    //
+    // AUTH_ALLOWED_EMAIL_DOMAINS is a comma-separated list, e.g.
+    // "c-encode.com,example.org". Leaving it unset imposes no restriction,
+    // so upstream and other self-hosters keep the current behaviour.
+    // Gate on WHO may have an account at all. This fires for every
+    // better-auth signup path (magic link, OTP, OAuth), so it is one choke
+    // point rather than a guard per plugin.
+    //
+    // Note the "add employee" path in people-invite.service.ts pre-creates the
+    // User row with raw Prisma and therefore never reaches this hook — those
+    // people already exist, so their first sign-in is not a signup.
+    user: {
+      create: {
+        before: async (user) => {
+          const email = user.email?.toLowerCase() ?? '';
+
+          // 1. Optional domain allowlist. Leave AUTH_ALLOWED_EMAIL_DOMAINS
+          //    UNSET when external auditors need access — it is domain-based
+          //    and would block them. Kept for deployments that want it.
+          const allowedDomains = (process.env.AUTH_ALLOWED_EMAIL_DOMAINS ?? '')
+            .split(',')
+            .map((domain) => domain.trim().toLowerCase())
+            .filter(Boolean);
+
+          if (allowedDomains.length > 0) {
+            const emailDomain = email.split('@').pop() ?? '';
+            // Match the domain itself or a subdomain, never a suffix
+            // ("notc-encode.com" must not pass for "c-encode.com").
+            const domainAllowed = allowedDomains.some(
+              (domain) =>
+                emailDomain === domain || emailDomain.endsWith(`.${domain}`),
+            );
+
+            if (!domainAllowed) {
+              console.warn(
+                `[Auth] Blocked account creation for disallowed email domain: ${emailDomain}`,
+              );
+              throw new APIError('FORBIDDEN', {
+                message:
+                  'This email domain is not permitted to access this instance.',
+              });
+            }
+          }
+
+          // 2. Invitation requirement. Deliberately domain-agnostic: an
+          //    external auditor signs up with their own firm's address and is
+          //    allowed through purely because someone invited them, while a
+          //    stranger with no invitation gets nothing.
+          if (process.env.AUTH_REQUIRE_INVITATION === 'true') {
+            const invitation = await db.invitation.findFirst({
+              where: {
+                email: { equals: email, mode: 'insensitive' },
+                status: 'pending',
+                expiresAt: { gt: new Date() },
+              },
+              select: { id: true },
+            });
+
+            if (!invitation) {
+              // Bootstrap escape: the first account on a fresh instance has
+              // nobody to invite it. Closes as soon as any user exists.
+              const existingUsers = await db.user.count();
+
+              if (existingUsers > 0) {
+                console.warn(`[Auth] Blocked uninvited signup for: ${email}`);
+                throw new APIError('FORBIDDEN', {
+                  message:
+                    'You need an invitation to access this instance. Ask your administrator to invite you.',
+                });
+              }
+            }
+          }
+
+          return { data: user };
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {
@@ -440,6 +535,38 @@ export const auth = betterAuth({
   secret: process.env.SECRET_KEY as string,
   plugins: [
     organization({
+      // Closes better-auth's own POST /api/auth/organization/create, which is
+      // mounted without a NestJS guard (auth.module.ts sets
+      // disableGlobalAuthGuard) and whose only check is "a session exists".
+      // Undefined means `true` upstream, so any logged-in user could mint an
+      // organization with curl. ORG_CREATION_ALLOWED_EMAILS is a comma-separated
+      // allowlist; unset leaves upstream behaviour untouched.
+      //
+      // NOTE: this covers the API endpoint only. The Next.js onboarding flow
+      // calls db.organization.create directly and is gated separately in
+      // apps/app/.../setup/actions/create-organization-minimal.ts — both are
+      // required, neither is sufficient.
+      allowUserToCreateOrganization: async (user) => {
+        const allowed = (process.env.ORG_CREATION_ALLOWED_EMAILS ?? '')
+          .split(',')
+          .map((email) => email.trim().toLowerCase())
+          .filter(Boolean);
+
+        if (allowed.length === 0) {
+          return true;
+        }
+
+        const email = user.email?.toLowerCase() ?? '';
+        const isAllowed = allowed.includes(email);
+
+        if (!isAllowed) {
+          console.warn(
+            `[Auth] Blocked organization creation via API for: ${email}`,
+          );
+        }
+
+        return isAllowed;
+      },
       membershipLimit: 100000000000,
       async sendInvitationEmail(data) {
         if (process.env.NODE_ENV === 'development') {
@@ -486,6 +613,10 @@ export const auth = betterAuth({
     }),
     magicLink({
       expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
+      // Magic links sign in existing users only; they never create an
+      // account. Combined with the domain allowlist above, the sole way
+      // onto this instance is an invitation from an existing member.
+      disableSignUp: process.env.AUTH_DISABLE_SIGNUP === 'true',
       sendMagicLink: async ({ email, url }) => {
         // The `url` from better-auth points to the API's verify endpoint
         // and includes the callbackURL from the client's sign-in request.
@@ -504,6 +635,9 @@ export const auth = betterAuth({
     }),
     emailOTP({
       otpLength: 6,
+      // Same reasoning as magicLink: OTP is a sign-in path, not a
+      // self-serve signup path.
+      disableSignUp: process.env.AUTH_DISABLE_SIGNUP === 'true',
       expiresIn: 10 * 60,
       async sendVerificationOTP({ email, otp }) {
         if (process.env.NODE_ENV === 'development') {

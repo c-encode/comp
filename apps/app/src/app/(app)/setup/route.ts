@@ -42,6 +42,32 @@ export async function GET(request: NextRequest) {
         redirect(target);
       }
     }
+
+    // Nobody is shown the new-organization screen unless they are an
+    // explicitly allowlisted operator. This is the single choke point: every
+    // route to onboarding (the landing page, ?intent=create-additional, and
+    // direct navigation) comes through here to get a setup session, so no
+    // setup session is ever minted for anyone else.
+    //
+    // An invited auditor is unaffected: they arrive via /invite/{code}, which
+    // is handled by the inviteCode branch above and downstream in
+    // /setup/[setupId], so they reach their organization without ever seeing
+    // onboarding. Leaving ORG_CREATION_ALLOWED_EMAILS unset restores upstream
+    // behaviour.
+    const orgCreators = (process.env.ORG_CREATION_ALLOWED_EMAILS ?? '')
+      .split(',')
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean);
+
+    const mayCreateOrg =
+      orgCreators.length === 0 ||
+      orgCreators.includes(session.user.email?.toLowerCase() ?? '');
+
+    if (!mayCreateOrg) {
+      // A user with no org must NOT be sent to `/` — the landing page routes
+      // no-org users back to /setup, which would loop. Dead-end them instead.
+      redirect(hasActiveOrg ? '/' : '/auth/access-removed');
+    }
   }
 
   const setupSession = await createSetupSession(session.user.id);

@@ -43,6 +43,36 @@ export const createOrganizationMinimal = authActionClientWithoutOrg
         };
       }
 
+      // Only explicitly allowlisted operators may create an organization.
+      // Without this, the sole gates here are "a session exists" plus the
+      // CS-569 offboarding backstop below, so ANY authenticated user — including
+      // a brand-new one with zero memberships — could self-provision a tenant.
+      // On a self-hosted box that is a live tenant: NEXT_PUBLIC_SELF_HOSTED
+      // makes /v1/organization-access/auto-approve grant hasAccess with no
+      // payment or approval.
+      //
+      // ORG_CREATION_ALLOWED_EMAILS is a comma-separated allowlist read at
+      // runtime; unset preserves upstream behaviour. The API endpoint
+      // POST /api/auth/organization/create is a separate door, gated in
+      // apps/api/src/auth/auth.server.ts — both are required.
+      const orgCreators = (process.env.ORG_CREATION_ALLOWED_EMAILS ?? '')
+        .split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (
+        orgCreators.length > 0 &&
+        !orgCreators.includes(session.user.email?.toLowerCase() ?? '')
+      ) {
+        console.warn(
+          `[Setup] Blocked organization creation for: ${session.user.email}`,
+        );
+        return {
+          success: false,
+          error: 'You are not authorized to create an organization.',
+        };
+      }
+
       // CS-569 backstop: never create an org for a user whose only memberships
       // are deactivated (0 active, >=1 inactive) — that user was offboarded and
       // the routing layer already sends them to /auth/access-removed. This
