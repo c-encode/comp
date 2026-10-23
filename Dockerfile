@@ -181,9 +181,11 @@ RUN bunx turbo build \
       --filter=@trycompai/analytics \
       --filter=@trycompai/integration-platform
 
-# Pre-combine schemas for portal build
-RUN cd packages/db && node scripts/combine-schemas.js
-RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema.prisma
+# Copy the model files next to the portal's generator config. build:docker runs
+# `prisma generate --schema=prisma/schema` on that directory, which in a clean
+# checkout holds only schema.prisma (no models), so the client would lack every
+# model (e.g. `Property 'policy' does not exist on type 'PrismaClient'`).
+RUN cd apps/portal && bun run db:getschema
 
 # Ensure Next build has required public env at build-time
 ARG NODE_HEAP_MB=6144
