@@ -17,7 +17,7 @@ If you later want ECS, the images built here are the same ones you would push.
 |---|---|
 | EC2 instance | **`t4g.medium` (4 GB, Graviton/ARM)** — build images on your workstation and have the instance only pull them. Only bump to 8 GB (`t4g.large`) if you build on the box: two Next.js builds request 6 GB of heap. |
 | RDS Postgres 15+ | Automated backups + PITR. This is the one thing not worth self-managing. |
-| S3 bucket(s) | Uploads and org assets. Attach an instance role instead of using keys. |
+| S3 bucket(s) | Uploads and org assets. Attach an instance role instead of using keys (see "S3 credentials" below). |
 | Route 53 + ACM | Three hostnames: `app.`, `portal.`, `api.` |
 | Security groups | 443 in from the world; 5432 to RDS only from the instance. |
 
@@ -118,11 +118,28 @@ must enumerate every origin:
 AUTH_TRUSTED_ORIGINS=https://app.example.com,https://portal.example.com,https://api.example.com
 ```
 
-**The `APP_AWS_*` block is validated at API boot** (`apps/api/src/config/aws.config.ts`)
-and throws if `APP_AWS_ACCESS_KEY_ID`, `APP_AWS_SECRET_ACCESS_KEY` or
-`APP_AWS_BUCKET_NAME` are empty. When using an instance role, set them to any
-non-empty placeholder so validation passes and let the SDK resolve real
-credentials from the role.
+**S3 credentials come from the instance role — leave the keys unset.**
+`APP_AWS_REGION` and `APP_AWS_BUCKET_NAME` are required. When
+`APP_AWS_ACCESS_KEY_ID` and `APP_AWS_SECRET_ACCESS_KEY` are both empty, every
+S3 client in `api`, `app` and `portal` falls back to the AWS SDK default
+credential chain, which on EC2 is the instance role. Do **not** put placeholder
+values in them: if both are non-empty they are used as real keys, every request
+is signed with them, and all uploads fail with `403 SignatureDoesNotMatch` /
+`InvalidAccessKeyId`.
+
+Two things make the instance role reachable from the containers:
+
+- The role needs `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject` on
+  `arn:aws:s3:::<bucket>/*` and `s3:ListBucket` on the bucket.
+- The containers sit one network hop behind the instance, so IMDSv2 must allow
+  a hop limit of 2 or the SDK cannot fetch role credentials:
+  `aws ec2 modify-instance-metadata-options --instance-id <id> --http-tokens required --http-put-response-hop-limit 2`
+
+Trigger.dev tasks run on Trigger.dev's infrastructure, not on the instance, so
+they have no instance role. Tasks that touch S3 (evidence export, questionnaire
+parsing, knowledge-base processing, detached policy PDF clean-up) still need
+`APP_AWS_ACCESS_KEY_ID`/`APP_AWS_SECRET_ACCESS_KEY` set in the Trigger.dev
+project's environment, scoped to the same bucket.
 
 ### Restricting who can sign in
 

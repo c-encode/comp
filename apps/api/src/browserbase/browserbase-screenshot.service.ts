@@ -8,7 +8,7 @@ export class BrowserbaseScreenshotService {
   private get s3Client(): S3Client {
     if (!s3Client) {
       throw new Error(
-        'S3 client not configured — set APP_AWS_ACCESS_KEY_ID, APP_AWS_SECRET_ACCESS_KEY, APP_AWS_REGION, APP_AWS_BUCKET_NAME in apps/api/.env',
+        'S3 client not configured — set APP_AWS_REGION and APP_AWS_BUCKET_NAME in apps/api/.env',
       );
     }
     return s3Client;

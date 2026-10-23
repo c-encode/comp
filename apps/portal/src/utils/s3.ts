@@ -1,6 +1,7 @@
 import { SupportedOS } from '@/app/api/download-agent/types';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl as _getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { s3CredentialsFromEnv } from './s3-credentials';
 
 /**
  * Re-export getSignedUrl with a type workaround for bun's duplicate @smithy/types.
@@ -15,16 +16,14 @@ export const getSignedUrl = _getSignedUrl as unknown as (
 ) => Promise<string>;
 
 const APP_AWS_REGION = process.env.APP_AWS_REGION;
-const APP_AWS_ACCESS_KEY_ID = process.env.APP_AWS_ACCESS_KEY_ID;
-const APP_AWS_SECRET_ACCESS_KEY = process.env.APP_AWS_SECRET_ACCESS_KEY;
 const APP_AWS_ENDPOINT = process.env.APP_AWS_ENDPOINT;
 
 export const BUCKET_NAME = process.env.APP_AWS_BUCKET_NAME;
 export const APP_AWS_ORG_ASSETS_BUCKET = process.env.APP_AWS_ORG_ASSETS_BUCKET;
 
-if (!APP_AWS_ACCESS_KEY_ID || !APP_AWS_SECRET_ACCESS_KEY || !BUCKET_NAME || !APP_AWS_REGION) {
+if (!BUCKET_NAME || !APP_AWS_REGION) {
   console.warn(
-    'AWS S3 credentials or configuration missing in environment variables. File upload features will be unavailable.',
+    'APP_AWS_BUCKET_NAME or APP_AWS_REGION missing in environment variables. File upload features will be unavailable.',
   );
 }
 
@@ -33,10 +32,7 @@ if (!APP_AWS_ACCESS_KEY_ID || !APP_AWS_SECRET_ACCESS_KEY || !BUCKET_NAME || !APP
 export const s3Client = new S3Client({
   endpoint: APP_AWS_ENDPOINT || undefined,
   region: APP_AWS_REGION!,
-  credentials: {
-    accessKeyId: APP_AWS_ACCESS_KEY_ID!,
-    secretAccessKey: APP_AWS_SECRET_ACCESS_KEY!,
-  },
+  ...s3CredentialsFromEnv(),
   forcePathStyle: !!APP_AWS_ENDPOINT,
 });
 
