@@ -5,8 +5,10 @@ FROM oven/bun:1.4.4 AS deps
 
 WORKDIR /app
 
-# Copy workspace configuration
-COPY package.json bun.lock ./
+# Copy workspace configuration. bunfig.toml sets linker = "hoisted": bun 1.3+
+# defaults workspaces to the isolated .bun/ layout, where tsc cannot name
+# transitive types (TS2742 on @trycompai/auth's createAuthServer).
+COPY package.json bun.lock bunfig.toml ./
 
 # Copy package.json files for all packages (exclude local db; use published @trycompai/db)
 COPY packages/kv/package.json ./packages/kv/
@@ -250,7 +252,9 @@ RUN bunx turbo build \
       --filter=@trycompai/integration-platform
 
 ENV NODE_ENV=production
-RUN cd apps/api && SKIP_ENV_VALIDATION=true bunx nest build
+# --smol: under bun 1.4.4 the in-process tsc grows past Docker Desktop's 8 GB
+# and is OOM-killed ("cannot allocate memory"); 1.2.8 fit without it.
+RUN cd apps/api && SKIP_ENV_VALIDATION=true bun --smol x nest build
 
 # =============================================================================
 # STAGE 8: API Production
