@@ -186,7 +186,11 @@ RUN cp packages/db/dist/schema.prisma apps/portal/prisma/schema.prisma
 # Ensure Next build has required public env at build-time
 ARG NODE_HEAP_MB=6144
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
+# Without this, the portal's browser code calls the http://localhost:3333
+# fallback, so training progress and other API-backed widgets never load.
+ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=$NEXT_PUBLIC_BETTER_AUTH_URL \
+    NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production \
     NEXT_OUTPUT_STANDALONE=true \
     NODE_OPTIONS=--max_old_space_size=$NODE_HEAP_MB

@@ -147,6 +147,7 @@ services:
       target: portal
       args:
         NEXT_PUBLIC_BETTER_AUTH_URL: ${BETTER_AUTH_URL_PORTAL}
+        NEXT_PUBLIC_API_URL: ${API_URL}
     ports:
       - '3002:3000'
     volumes: *rds-ca-mount
