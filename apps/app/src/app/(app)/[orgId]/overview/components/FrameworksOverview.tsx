@@ -75,6 +75,10 @@ export function mapFrameworkToBadge(framework: FrameworkInstanceWithControls) {
     return '/badges/pipeda.svg';
   }
 
+  if (normalizedName.startsWith('phipa')) {
+    return '/badges/phipa.svg';
+  }
+
   return null;
 }
 

@@ -60,6 +60,9 @@ function getFrameworkBadge(name: string): string | null {
   if (normalizedName.includes('pci dss')) {
     return '/badges/pci-dss.svg';
   }
+  if (normalizedName.startsWith('phipa')) {
+    return '/badges/phipa.svg';
+  }
 
   return null;
 }
