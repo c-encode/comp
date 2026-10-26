@@ -10,6 +10,7 @@ jest.mock('@db', () => ({
   },
 }));
 jest.mock('@trigger.dev/sdk', () => ({ tasks: { trigger: jest.fn() } }));
+jest.mock('@trycompai/auth', () => ({ BUILT_IN_ROLE_PERMISSIONS: {} }));
 jest.mock('./trust-access-url', () => ({
   buildTrustPortalAccessUrl: jest.fn(),
 }));
