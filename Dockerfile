@@ -1,7 +1,7 @@
 # =============================================================================
 # STAGE 1: Dependencies - Install and cache workspace dependencies
 # =============================================================================
-FROM oven/bun:1.2.8 AS deps
+FROM oven/bun:1.4.4 AS deps
 
 WORKDIR /app
 
@@ -35,10 +35,8 @@ RUN PRISMA_SKIP_POSTINSTALL_GENERATE=true bun install --ignore-scripts
 # =============================================================================
 # STAGE 2: Ultra-Minimal Migrator - Only Prisma
 # =============================================================================
-# bun 1.3+ reports Node-compat v24; bun 1.2.8 reports v22.6.0, which is below
-# Prisma 7's floor (20.19+/22.12+/24.0+) and fails its preinstall check.
-# Only this stage needs it — the app/portal/api builders stay on 1.2.8.
-FROM oven/bun:1.3 AS migrator
+# Prisma 7 needs bun 1.3+ (Node-compat v24); upstream pins 1.4.4 for CVE-2026-111497.
+FROM oven/bun:1.4.4 AS migrator
 
 WORKDIR /app
 
@@ -142,7 +140,7 @@ RUN cd apps/app && SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true bun run build:d
 # =============================================================================
 # STAGE 4: App Production
 # =============================================================================
-FROM node:22-alpine AS app
+FROM node:22.23.4-alpine AS app
 
 WORKDIR /app
 
@@ -199,7 +197,7 @@ RUN cd apps/portal && SKIP_ENV_VALIDATION=true bun run build:docker
 # =============================================================================
 # STAGE 6: Portal Production
 # =============================================================================
-FROM node:22-alpine AS portal
+FROM node:22.23.4-alpine AS portal
 
 WORKDIR /app
 
