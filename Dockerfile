@@ -76,7 +76,16 @@ RUN cp -R packages/db/prisma/migrations node_modules/@trycompai/db/dist/
 
 # Run migrations against the combined schema published by @trycompai/db
 RUN echo "Running migrations against @trycompai/db combined schema"
-CMD ["bunx", "prisma", "migrate", "deploy", "--schema=node_modules/@trycompai/db/dist/schema.prisma"]
+# Prisma 7 reads the database URL only from a config file; without it every
+# migrate command fails with "The datasource.url property is required".
+RUN printf '%s\n' \
+  'import { defineConfig } from "prisma/config";' \
+  'export default defineConfig({' \
+  '  schema: "node_modules/@trycompai/db/dist/schema.prisma",' \
+  '  datasource: { url: process.env.DATABASE_URL },' \
+  '  migrations: { path: "node_modules/@trycompai/db/dist/migrations" },' \
+  '});' > prisma.config.ts
+CMD ["bunx", "prisma", "migrate", "deploy"]
 
 # =============================================================================
 # STAGE 3: App Builder
@@ -252,9 +261,16 @@ RUN bunx turbo build \
       --filter=@trycompai/integration-platform
 
 ENV NODE_ENV=production
-# --smol: under bun 1.4.4 the in-process tsc grows past Docker Desktop's 8 GB
-# and is OOM-killed ("cannot allocate memory"); 1.2.8 fit without it.
-RUN cd apps/api && SKIP_ENV_VALIDATION=true bun --smol x nest build
+# Compile under real Node with a capped heap. Under bun 1.4.4 the in-process
+# tsc grows past Docker Desktop's 8 GB and is OOM-killed ("cannot allocate
+# memory"), even with --smol. The bun image only ships a node shim.
+COPY --from=node:22.23.4-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+RUN cd apps/api && SKIP_ENV_VALIDATION=true \
+    /usr/local/bin/node --max-old-space-size=4096 ../../node_modules/@nestjs/cli/bin/nest.js build
+# Guard: nest build rewrites the @db and @/ path aliases to relative requires.
+# If any survive, the container dies on start with "Cannot find package '@db'".
+RUN if grep -rlE 'require\("(@db|@/)' apps/api/dist; then \
+      echo "unrewritten path aliases in apps/api/dist" >&2; exit 1; fi
 
 # =============================================================================
 # STAGE 8: API Production
