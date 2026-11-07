@@ -23,6 +23,10 @@ import { ac, allRoles } from '@trycompai/auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { Redis } from '@upstash/redis';
 import type { AccessControl } from 'better-auth/plugins/access';
+import {
+  assertAuthRequestAllowed,
+  assertEmailChangeLinkOwner,
+} from './auth-request-policy';
 import { mcpOAuthBeforeHook } from './mcp-oauth-hooks';
 import { assertMembershipRouteAllowed } from './membership-route-policy';
 import { mapMicrosoftProfileToUser } from './microsoft-email';
@@ -462,6 +466,8 @@ export const auth = betterAuth({
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       assertMembershipRouteAllowed(ctx.path);
+      assertAuthRequestAllowed({ path: ctx.path, body: ctx.body });
+      await assertEmailChangeLinkOwner(ctx);
       return mcpOAuthBeforeHook(ctx);
     }),
     after: createAuthMiddleware(async (ctx) => {
@@ -620,6 +626,8 @@ export const auth = betterAuth({
       // account. Combined with the domain allowlist above, the sole way
       // onto this instance is an invitation from an existing member.
       disableSignUp: process.env.AUTH_DISABLE_SIGNUP === 'true',
+      // Verification tokens are persisted as one-way hashes.
+      storeToken: 'hashed',
       sendMagicLink: async ({ email, url }) => {
         // The `url` from better-auth points to the API's verify endpoint
         // and includes the callbackURL from the client's sign-in request.
