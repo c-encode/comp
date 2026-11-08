@@ -584,6 +584,7 @@ export class TasksService {
       department?: string | null;
       reviewDate?: Date | null;
       notRelevantJustification?: string;
+      automationStatus?: 'AUTOMATED' | 'MANUAL';
     },
     changedByUserId: string,
   ): Promise<TaskResponseDto> {
@@ -629,6 +630,7 @@ export class TasksService {
         department?: string | null;
         reviewDate?: Date | null;
         notRelevantJustification?: string | null;
+        automationStatus?: 'AUTOMATED' | 'MANUAL';
       } = {};
 
       if (updateData.title !== undefined) {
@@ -719,6 +721,9 @@ export class TasksService {
       }
       if (updateData.department !== undefined) {
         dataToUpdate.department = updateData.department;
+      }
+      if (updateData.automationStatus !== undefined) {
+        dataToUpdate.automationStatus = updateData.automationStatus;
       }
       if (updateData.reviewDate !== undefined) {
         dataToUpdate.reviewDate = updateData.reviewDate;

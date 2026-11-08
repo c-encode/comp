@@ -19,6 +19,7 @@ interface UpdateTaskPayload {
   description?: string;
   integrationScheduleFrequency?: TaskFrequency;
   notRelevantJustification?: string;
+  automationStatus?: 'AUTOMATED' | 'MANUAL';
 }
 
 interface UseTaskReturn {

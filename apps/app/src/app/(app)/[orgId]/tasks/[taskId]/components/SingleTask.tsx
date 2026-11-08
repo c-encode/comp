@@ -57,6 +57,7 @@ import { TaskIntegrationChecks } from './TaskIntegrationChecks';
 import { TaskMainContent } from './TaskMainContent';
 import { TaskPolicies } from './TaskPolicies';
 import { TaskPropertiesSidebar } from './TaskPropertiesSidebar';
+import { toUpdateTaskPayload, type TaskUpdates } from './task-update-payload';
 
 type AutomationWithRuns = EvidenceAutomation & {
   runs: EvidenceAutomationRun[];
@@ -178,22 +179,9 @@ export function SingleTask({
     }
   };
 
-  const handleUpdateTask = async (
-    updates: Partial<Pick<Task, 'status' | 'assigneeId' | 'approverId' | 'frequency' | 'reviewDate'>> & {
-      department?: string | null;
-      notRelevantJustification?: string;
-    },
-  ) => {
+  const handleUpdateTask = async (updates: TaskUpdates) => {
     try {
-      await updateTask({
-        status: updates.status,
-        assigneeId: updates.assigneeId,
-        approverId: updates.approverId,
-        frequency: updates.frequency,
-        department: updates.department,
-        reviewDate: updates.reviewDate ? String(updates.reviewDate) : undefined,
-        notRelevantJustification: updates.notRelevantJustification,
-      });
+      await updateTask(toUpdateTaskPayload(updates));
       toast.success('Task updated');
       mutateActivity();
     } catch (error) {

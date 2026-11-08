@@ -791,7 +791,7 @@ export class TasksController {
   @ApiOperation({
     summary: 'Update a task',
     description:
-      'Update an existing task (title, description, status, assignee, approver, frequency, department, reviewDate)',
+      'Update an existing task (title, description, status, assignee, approver, frequency, department, reviewDate, automationStatus). Set automationStatus to AUTOMATED to allow evidence automations on a task.',
   })
   @ApiParam({
     name: 'taskId',
@@ -859,6 +859,13 @@ export class TasksController {
           description:
             'Required justification when marking evidence tasks as not_relevant',
         },
+        automationStatus: {
+          type: 'string',
+          enum: ['AUTOMATED', 'MANUAL'],
+          example: 'MANUAL',
+          description:
+            'MANUAL hides the Automations tab and skips scheduled checks. Tasks created without a template start MANUAL.',
+        },
       },
     },
   })
@@ -895,6 +902,7 @@ export class TasksController {
       department?: string | null;
       reviewDate?: string;
       notRelevantJustification?: string;
+      automationStatus?: string;
     },
   ): Promise<TaskResponseDto> {
     const userId = await this.resolveTaskMutationUserId(
@@ -904,6 +912,16 @@ export class TasksController {
     );
 
     const normalizedDepartment = normalizeDepartment(body.department);
+
+    if (
+      body.automationStatus !== undefined &&
+      body.automationStatus !== 'AUTOMATED' &&
+      body.automationStatus !== 'MANUAL'
+    ) {
+      throw new BadRequestException(
+        'automationStatus must be AUTOMATED or MANUAL',
+      );
+    }
 
     let parsedReviewDate: Date | null | undefined;
     if (body.reviewDate !== undefined) {
@@ -936,6 +954,7 @@ export class TasksController {
         department: normalizedDepartment,
         reviewDate: parsedReviewDate,
         notRelevantJustification: body.notRelevantJustification,
+        automationStatus: body.automationStatus,
       },
       userId,
     );

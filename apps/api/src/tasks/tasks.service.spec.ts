@@ -134,6 +134,22 @@ describe('TasksService approval gating', () => {
       expect(taskUpdate).not.toHaveBeenCalled();
     });
 
+    it('sets automationStatus when given (switch a custom task to AUTOMATED)', async () => {
+      taskFindFirst.mockResolvedValue(existing(false));
+
+      await service.updateTask(ORG_ID, TASK_ID, { automationStatus: 'AUTOMATED' }, USER_ID);
+
+      expect(lastUpdateData().automationStatus).toBe('AUTOMATED');
+    });
+
+    it('leaves automationStatus alone when not given', async () => {
+      taskFindFirst.mockResolvedValue(existing(false));
+
+      await service.updateTask(ORG_ID, TASK_ID, { title: 'Renamed' }, USER_ID);
+
+      expect(lastUpdateData()).not.toHaveProperty('automationStatus');
+    });
+
     it('ALLOWED: approval ON + no approver allows todo→done', async () => {
       taskFindFirst.mockResolvedValue(existing(true, { approverId: null }));
 
@@ -360,6 +376,10 @@ describe('TasksService approval gating', () => {
     it('template task copies the template status (MANUAL)', async () => {
       templateFindUnique.mockResolvedValue({ automationStatus: 'MANUAL' });
       await create('frk_tt_1');
+      // MANUAL is also the default, so prove the template was actually read.
+      expect(templateFindUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'frk_tt_1' } }),
+      );
       expect(createdStatus()).toBe('MANUAL');
     });
 

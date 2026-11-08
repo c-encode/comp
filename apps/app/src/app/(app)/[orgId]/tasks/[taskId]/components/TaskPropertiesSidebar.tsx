@@ -4,7 +4,7 @@ import { DepartmentSelect } from '@/components/DepartmentSelect';
 import { SelectAssignee } from '@/components/SelectAssignee';
 import { useOrganizationMembers } from '@/hooks/use-organization-members';
 import { usePermissions } from '@/hooks/use-permissions';
-import type { Member, Task, TaskFrequency, TaskStatus, User } from '@db';
+import type { Member, TaskFrequency, TaskStatus, User } from '@db';
 import { format } from 'date-fns';
 import { useParams } from 'next/navigation';
 import {
@@ -27,14 +27,10 @@ import { useState } from 'react';
 import { NotRelevantJustificationDialog } from '../../components/NotRelevantJustificationDialog';
 import { useTask } from '../hooks/use-task';
 import { taskStatuses, taskFrequencies } from './constants';
+import type { TaskUpdates } from './task-update-payload';
 
 interface TaskPropertiesSidebarProps {
-  handleUpdateTask: (
-    data: Partial<Pick<Task, 'status' | 'assigneeId' | 'approverId' | 'frequency' | 'reviewDate'>> & {
-      department?: string | null;
-      notRelevantJustification?: string;
-    },
-  ) => void;
+  handleUpdateTask: (data: TaskUpdates) => void;
   evidenceApprovalEnabled?: boolean;
   onRequestApproval?: () => void;
 }
@@ -146,6 +142,28 @@ export function TaskPropertiesSidebar({
               }
               disabled={!canUpdate}
             />
+          </Stack>
+
+          {/* Automation: MANUAL hides the Automations tab and skips scheduled checks */}
+          <Stack gap="sm">
+            <Label>Automation</Label>
+            <Select
+              value={task.automationStatus}
+              onValueChange={(value) => {
+                if (value === 'AUTOMATED' || value === 'MANUAL') {
+                  handleUpdateTask({ automationStatus: value });
+                }
+              }}
+              disabled={!canUpdate}
+            >
+              <SelectTrigger aria-label="Automation">
+                <span>{task.automationStatus === 'AUTOMATED' ? 'Automated' : 'Manual'}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MANUAL">Manual</SelectItem>
+                <SelectItem value="AUTOMATED">Automated</SelectItem>
+              </SelectContent>
+            </Select>
           </Stack>
 
           {/* Review Date */}

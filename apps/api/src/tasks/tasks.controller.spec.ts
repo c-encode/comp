@@ -764,6 +764,25 @@ describe('TasksController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('passes automationStatus through to the service', async () => {
+      mockTasksService.updateTask.mockResolvedValue({ id: 'tsk_1' });
+
+      await controller.updateTask(orgId, authContext, 'tsk_1', {
+        automationStatus: 'MANUAL',
+      });
+
+      expect(mockTasksService.updateTask.mock.calls[0][2].automationStatus).toBe('MANUAL');
+    });
+
+    it('rejects an unknown automationStatus', async () => {
+      await expect(
+        controller.updateTask(orgId, authContext, 'tsk_1', {
+          automationStatus: 'SOMETIMES',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockTasksService.updateTask).not.toHaveBeenCalled();
+    });
+
     it('should use getApiKeyActorUserId for API key auth', async () => {
       const apiKeyAuth: AuthContext = {
         ...authContext,
