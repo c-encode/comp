@@ -584,6 +584,7 @@ export class TasksService {
       department?: string | null;
       reviewDate?: Date | null;
       notRelevantJustification?: string;
+      automationStatus?: 'AUTOMATED' | 'MANUAL';
     },
     changedByUserId: string,
   ): Promise<TaskResponseDto> {
@@ -629,6 +630,7 @@ export class TasksService {
         department?: string | null;
         reviewDate?: Date | null;
         notRelevantJustification?: string | null;
+        automationStatus?: 'AUTOMATED' | 'MANUAL';
       } = {};
 
       if (updateData.title !== undefined) {
@@ -719,6 +721,9 @@ export class TasksService {
       }
       if (updateData.department !== undefined) {
         dataToUpdate.department = updateData.department;
+      }
+      if (updateData.automationStatus !== undefined) {
+        dataToUpdate.automationStatus = updateData.automationStatus;
       }
       if (updateData.reviewDate !== undefined) {
         dataToUpdate.reviewDate = updateData.reviewDate;
@@ -893,8 +898,9 @@ export class TasksService {
     },
   ): Promise<TaskResponseDto> {
     try {
-      // Get automation status from template if one is selected
-      let automationStatus: 'AUTOMATED' | 'MANUAL' = 'AUTOMATED';
+      // A template task inherits the template's automation status. A custom
+      // task has no checks or automations behind it, so it starts MANUAL.
+      let automationStatus: 'AUTOMATED' | 'MANUAL' = 'MANUAL';
       if (createData.taskTemplateId) {
         const template = await db.frameworkEditorTaskTemplate.findUnique({
           where: { id: createData.taskTemplateId },

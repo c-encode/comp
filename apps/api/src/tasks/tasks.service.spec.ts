@@ -6,10 +6,14 @@ jest.mock('@db', () => ({
     task: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
+      create: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
     },
     organization: {
+      findUnique: jest.fn(),
+    },
+    frameworkEditorTaskTemplate: {
       findUnique: jest.fn(),
     },
     member: {
@@ -51,6 +55,8 @@ const taskFindFirst = db.task.findFirst as jest.Mock;
 const taskUpdate = db.task.update as jest.Mock;
 const taskUpdateMany = db.task.updateMany as jest.Mock;
 const taskFindMany = db.task.findMany as jest.Mock;
+const taskCreate = db.task.create as jest.Mock;
+const templateFindUnique = db.frameworkEditorTaskTemplate.findUnique as jest.Mock;
 const orgFindUnique = db.organization.findUnique as jest.Mock;
 const memberFindFirst = db.member.findFirst as jest.Mock;
 const auditLogCreate = db.auditLog.create as jest.Mock;
@@ -126,6 +132,22 @@ describe('TasksService approval gating', () => {
         'Cannot mark task as done directly when an approver is assigned. Submit for review instead.',
       );
       expect(taskUpdate).not.toHaveBeenCalled();
+    });
+
+    it('sets automationStatus when given (switch a custom task to AUTOMATED)', async () => {
+      taskFindFirst.mockResolvedValue(existing(false));
+
+      await service.updateTask(ORG_ID, TASK_ID, { automationStatus: 'AUTOMATED' }, USER_ID);
+
+      expect(lastUpdateData().automationStatus).toBe('AUTOMATED');
+    });
+
+    it('leaves automationStatus alone when not given', async () => {
+      taskFindFirst.mockResolvedValue(existing(false));
+
+      await service.updateTask(ORG_ID, TASK_ID, { title: 'Renamed' }, USER_ID);
+
+      expect(lastUpdateData()).not.toHaveProperty('automationStatus');
     });
 
     it('ALLOWED: approval ON + no approver allows todo→done', async () => {
@@ -321,6 +343,50 @@ describe('TasksService approval gating', () => {
         service.updateTasksAssignee(ORG_ID, [TASK_ID], 'mem_other_org', USER_ID),
       ).rejects.toThrow('Assignee is not a member of this organization');
       expect(taskUpdateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  // A task with no template has nothing to automate it: it starts MANUAL so
+  // Comp shows no Automations tab and the scheduler never runs checks on it.
+  describe('createTask automationStatus', () => {
+    const create = (taskTemplateId?: string) =>
+      service.createTask(ORG_ID, {
+        title: 'Quarterly review',
+        description: 'Done by hand',
+        ...(taskTemplateId ? { taskTemplateId } : {}),
+      });
+    const createdStatus = () => taskCreate.mock.calls[0][0].data.automationStatus;
+
+    beforeEach(() => {
+      taskCreate.mockResolvedValue({ id: TASK_ID, title: 'Quarterly review' });
+    });
+
+    it('custom task (no template) is MANUAL', async () => {
+      await create();
+      expect(createdStatus()).toBe('MANUAL');
+      expect(templateFindUnique).not.toHaveBeenCalled();
+    });
+
+    it('template task copies the template status (AUTOMATED)', async () => {
+      templateFindUnique.mockResolvedValue({ automationStatus: 'AUTOMATED' });
+      await create('frk_tt_1');
+      expect(createdStatus()).toBe('AUTOMATED');
+    });
+
+    it('template task copies the template status (MANUAL)', async () => {
+      templateFindUnique.mockResolvedValue({ automationStatus: 'MANUAL' });
+      await create('frk_tt_1');
+      // MANUAL is also the default, so prove the template was actually read.
+      expect(templateFindUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'frk_tt_1' } }),
+      );
+      expect(createdStatus()).toBe('MANUAL');
+    });
+
+    it('unknown template id falls back to MANUAL', async () => {
+      templateFindUnique.mockResolvedValue(null);
+      await create('frk_tt_missing');
+      expect(createdStatus()).toBe('MANUAL');
     });
   });
 });
