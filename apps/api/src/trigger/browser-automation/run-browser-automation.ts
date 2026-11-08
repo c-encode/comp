@@ -1,6 +1,7 @@
 import { db } from '@db';
 import { logger, tags, task } from '@trigger.dev/sdk';
 import { BrowserbaseService } from '../../browserbase/browserbase.service';
+import { computeNextTaskReviewDate } from '../../tasks/task-review-date';
 
 const browserbaseService = new BrowserbaseService();
 
@@ -141,18 +142,7 @@ export const runBrowserAutomation = task({
 
         let reviewDate: Date | undefined;
         if (currentTask?.frequency) {
-          reviewDate = new Date();
-          switch (currentTask.frequency) {
-            case 'monthly':
-              reviewDate.setMonth(reviewDate.getMonth() + 1);
-              break;
-            case 'quarterly':
-              reviewDate.setMonth(reviewDate.getMonth() + 3);
-              break;
-            case 'yearly':
-              reviewDate.setFullYear(reviewDate.getFullYear() + 1);
-              break;
-          }
+          reviewDate = computeNextTaskReviewDate(currentTask.frequency);
         }
 
         // Atomic: flip to done only if it isn't already done and isn't a

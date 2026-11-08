@@ -83,12 +83,12 @@ export function BulkTaskStatusChangeModal({
         const { submittedCount } = await bulkSubmitForReview(selectedTaskIds, approverId!);
         toast.success(`${submittedCount} task${submittedCount === 1 ? '' : 's'} submitted for review`);
       } else {
-        // Normal bulk status change using hook
-        const reviewDate = status === TaskStatus.done ? new Date().toISOString() : undefined;
+        // Normal bulk status change using hook. No reviewDate: on "done" the API
+        // sets each task's next review date from its frequency.
         const { updatedCount } = await bulkUpdateStatus(
           selectedTaskIds,
           status,
-          reviewDate,
+          undefined,
           isNotRelevant ? justification.trim() || undefined : undefined,
         );
         toast.success(`Updated ${updatedCount} task${updatedCount === 1 ? '' : 's'}`);

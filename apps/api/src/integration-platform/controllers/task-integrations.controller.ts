@@ -53,6 +53,7 @@ import {
 } from '../utils/run-history-limits';
 import { db } from '@db';
 import type { IntegrationConnection, Prisma } from '@db';
+import { computeNextTaskReviewDate } from '../../tasks/task-review-date';
 
 /** Manifest + check types derived from the integration-platform registry. */
 type IntegrationManifest = NonNullable<ReturnType<typeof getManifest>>;
@@ -491,18 +492,7 @@ export class TaskIntegrationsController {
 
       let reviewDate: Date | undefined;
       if (isTransitioningToDone && task.frequency) {
-        reviewDate = new Date();
-        switch (task.frequency) {
-          case 'monthly':
-            reviewDate.setMonth(reviewDate.getMonth() + 1);
-            break;
-          case 'quarterly':
-            reviewDate.setMonth(reviewDate.getMonth() + 3);
-            break;
-          case 'yearly':
-            reviewDate.setFullYear(reviewDate.getFullYear() + 1);
-            break;
-        }
+        reviewDate = computeNextTaskReviewDate(task.frequency);
       }
 
       await db.task.update({

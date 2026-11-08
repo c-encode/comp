@@ -10,29 +10,13 @@ import { filterDescriptionByFrameworks } from './description-framework-filter';
 import { db, TaskStatus, Prisma, TaskFrequency } from '@db';
 import { TaskResponseDto } from './dto/task-responses.dto';
 import { TaskNotifierService } from './task-notifier.service';
+import {
+  computeNextTaskReviewDate,
+  setNextReviewDatesForDoneTasks,
+} from './task-review-date';
 import { checkAutoCompletePhases } from '../frameworks/frameworks-timeline.helper';
 import { TimelinesService } from '../timelines/timelines.service';
 import { isMemberOrgParticipant } from '../utils/org-participation';
-
-function computeNextTaskReviewDate(
-  frequency: TaskFrequency | null | undefined,
-): Date {
-  const now = new Date();
-  switch (frequency) {
-    case TaskFrequency.daily:
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    case TaskFrequency.weekly:
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
-    case TaskFrequency.monthly:
-      return new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-    case TaskFrequency.quarterly:
-      return new Date(now.getFullYear(), now.getMonth() + 3, now.getDate());
-    case TaskFrequency.yearly:
-      return new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
-    default:
-      return new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
-  }
-}
 
 @Injectable()
 export class TasksService {
@@ -420,6 +404,14 @@ export class TasksService {
         throw new BadRequestException(
           'No tasks were updated. Check task IDs or organization access.',
         );
+      }
+
+      if (status === TaskStatus.done && reviewDate === undefined) {
+        await setNextReviewDatesForDoneTasks({
+          organizationId,
+          taskIds,
+          onlyWithoutApprover: evidenceApprovalEnabled,
+        });
       }
 
       // Send notifications (fire-and-forget, don't block response)

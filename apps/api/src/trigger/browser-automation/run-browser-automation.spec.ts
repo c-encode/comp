@@ -158,6 +158,27 @@ describe('runBrowserAutomation worker — task-status transitions are atomic + g
     expect(db.task.update).not.toHaveBeenCalled();
   });
 
+  // reviewDate is the next due date; a weekly task completed by an automation
+  // must not get "now", or the reopen job brings it back on its next run.
+  it('sets a weekly task\'s next review date a week out on a passing run', async () => {
+    (db.task.findUnique as jest.Mock).mockResolvedValue({
+      title: 'Enforce MFA',
+      frequency: 'weekly',
+    });
+    mockRunBrowserAutomation.mockResolvedValue({
+      success: true,
+      runId: 'bar_1',
+      screenshotUrl: 'https://s3/shot.jpg',
+      evaluationStatus: 'pass',
+    });
+
+    await worker.run(payload);
+
+    const reviewDate: Date = (db.task.updateMany as jest.Mock).mock.calls[0][0].data.reviewDate;
+    expect(reviewDate).toBeInstanceOf(Date);
+    expect(reviewDate.getTime()).toBeGreaterThan(Date.now() + 6 * 24 * 60 * 60 * 1000);
+  });
+
   it('flips a regressed run to failed via an updateMany that excludes not_relevant', async () => {
     mockRunBrowserAutomation.mockResolvedValue({
       success: false,

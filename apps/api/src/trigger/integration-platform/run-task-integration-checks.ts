@@ -19,6 +19,7 @@ import {
   decideRunStatus,
   type FailingFinding,
 } from '../../integration-platform/utils/task-check-evaluation';
+import { computeNextTaskReviewDate } from '../../tasks/task-review-date';
 
 /**
  * Result of one task's integration-check run. The per-org runner
@@ -510,18 +511,7 @@ export const runTaskIntegrationChecks = task({
           // Calculate next review date based on frequency
           let reviewDate: Date | undefined;
           if (currentTask.frequency) {
-            reviewDate = new Date();
-            switch (currentTask.frequency) {
-              case 'monthly':
-                reviewDate.setMonth(reviewDate.getMonth() + 1);
-                break;
-              case 'quarterly':
-                reviewDate.setMonth(reviewDate.getMonth() + 3);
-                break;
-              case 'yearly':
-                reviewDate.setFullYear(reviewDate.getFullYear() + 1);
-                break;
-            }
+            reviewDate = computeNextTaskReviewDate(currentTask.frequency);
           }
 
           await db.task.update({
