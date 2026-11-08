@@ -3,6 +3,8 @@ import { db } from '@db/server';
 import { Novu } from '@novu/api';
 import { logger, schedules } from '@trigger.dev/sdk';
 
+import { isReviewDue } from './review-due';
+
 export const policySchedule = schedules.task({
   id: 'policy-schedule',
   machine: 'large-1x',
@@ -52,41 +54,10 @@ export const policySchedule = schedules.task({
       },
     });
 
-    // Compute next due date based on frequency and filter to overdue
-    const addMonthsToDate = (date: Date, months: number) => {
-      const result = new Date(date.getTime());
-      const originalDayOfMonth = result.getDate();
-      result.setMonth(result.getMonth() + months);
-      // Handle month rollover (e.g., Jan 31 + 1 month -> Feb 28/29)
-      if (result.getDate() < originalDayOfMonth) {
-        result.setDate(0);
-      }
-      return result;
-    };
-
-    const overduePolicies = candidatePolicies.filter((policy) => {
-      if (!policy.reviewDate || !policy.frequency) return false;
-
-      let monthsToAdd = 0;
-      switch (policy.frequency) {
-        case 'monthly':
-          monthsToAdd = 1;
-          break;
-        case 'quarterly':
-          monthsToAdd = 3;
-          break;
-        case 'yearly':
-          monthsToAdd = 12;
-          break;
-        default:
-          monthsToAdd = 0;
-      }
-
-      if (monthsToAdd === 0) return false;
-
-      const nextDueDate = addMonthsToDate(policy.reviewDate, monthsToAdd);
-      return nextDueDate <= now;
-    });
+    // reviewDate is the next due date (set when the policy was published).
+    const overduePolicies = candidatePolicies.filter((policy) =>
+      isReviewDue({ reviewDate: policy.reviewDate, frequency: policy.frequency, now }),
+    );
 
     logger.info(`Found ${overduePolicies.length} policies past their computed review deadline`);
 

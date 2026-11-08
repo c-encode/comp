@@ -5,6 +5,7 @@ jest.mock('@db', () => ({
   db: {
     task: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
     },
@@ -41,7 +42,7 @@ jest.mock('../auth/auth.server', () => ({
 }));
 
 import { Test } from '@nestjs/testing';
-import { db, TaskStatus } from '@db';
+import { db, TaskFrequency, TaskStatus } from '@db';
 import { TaskNotifierService } from './task-notifier.service';
 import { TimelinesService } from '../timelines/timelines.service';
 import { TasksService } from './tasks.service';
@@ -49,6 +50,7 @@ import { TasksService } from './tasks.service';
 const taskFindFirst = db.task.findFirst as jest.Mock;
 const taskUpdate = db.task.update as jest.Mock;
 const taskUpdateMany = db.task.updateMany as jest.Mock;
+const taskFindMany = db.task.findMany as jest.Mock;
 const orgFindUnique = db.organization.findUnique as jest.Mock;
 const memberFindFirst = db.member.findFirst as jest.Mock;
 const auditLogCreate = db.auditLog.create as jest.Mock;
@@ -98,6 +100,7 @@ describe('TasksService approval gating', () => {
     service = moduleRef.get(TasksService);
     memberFindFirst.mockResolvedValue({ id: 'mem_actor', user: { role: 'owner' } });
     taskUpdate.mockResolvedValue({ id: TASK_ID });
+    taskFindMany.mockResolvedValue([]);
     auditLogCreate.mockResolvedValue({});
   });
 
@@ -215,6 +218,80 @@ describe('TasksService approval gating', () => {
       const where = taskUpdateMany.mock.calls[0][0].where;
       expect(where.approverId).toBeNull();
       expect(where.status).toEqual({ not: 'in_review' });
+    });
+
+    // reviewDate is the next due date. Bulk "done" without an explicit date
+    // must set it per task from its frequency, like a single-task update does,
+    // so the reopen job brings each task back after exactly one period.
+    it('bulk done without a reviewDate sets each task\'s next review date from its frequency', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 10, 8, 12));
+      orgFindUnique.mockResolvedValue({ evidenceApprovalEnabled: false });
+      taskUpdateMany.mockResolvedValue({ count: 3 });
+      taskFindMany.mockResolvedValue([
+        { id: 'tsk_q', frequency: TaskFrequency.quarterly },
+        { id: 'tsk_y', frequency: TaskFrequency.yearly },
+        { id: 'tsk_none', frequency: null },
+      ]);
+
+      await service.updateTasksStatus(
+        ORG_ID,
+        ['tsk_q', 'tsk_y', 'tsk_none'],
+        TaskStatus.done,
+        undefined,
+        USER_ID,
+      );
+      jest.useRealTimers();
+
+      expect(taskUpdateMany.mock.calls[0][0].data.reviewDate).toBeUndefined();
+      expect(taskFindMany.mock.calls[0][0].where).toEqual({
+        id: { in: ['tsk_q', 'tsk_y', 'tsk_none'] },
+        organizationId: ORG_ID,
+        status: TaskStatus.done,
+      });
+      const byIds = Object.fromEntries(
+        taskUpdateMany.mock.calls
+          .slice(1)
+          .map(([arg]) => [arg.where.id.in.join(','), arg.data.reviewDate]),
+      );
+      expect(byIds).toEqual({
+        tsk_q: new Date(2027, 1, 8),
+        tsk_y: new Date(2027, 10, 8),
+        tsk_none: null,
+      });
+    });
+
+    it('bulk done with an explicit reviewDate keeps it and does not recompute', async () => {
+      orgFindUnique.mockResolvedValue({ evidenceApprovalEnabled: false });
+      taskUpdateMany.mockResolvedValue({ count: 1 });
+      const explicit = new Date('2027-03-01T00:00:00Z');
+
+      await service.updateTasksStatus(
+        ORG_ID,
+        [TASK_ID],
+        TaskStatus.done,
+        explicit,
+        USER_ID,
+      );
+
+      expect(taskUpdateMany).toHaveBeenCalledTimes(1);
+      expect(taskUpdateMany.mock.calls[0][0].data.reviewDate).toBe(explicit);
+      expect(taskFindMany).not.toHaveBeenCalled();
+    });
+
+    it('bulk status other than done does not touch review dates', async () => {
+      orgFindUnique.mockResolvedValue({ evidenceApprovalEnabled: false });
+      taskUpdateMany.mockResolvedValue({ count: 1 });
+
+      await service.updateTasksStatus(
+        ORG_ID,
+        [TASK_ID],
+        TaskStatus.todo,
+        undefined,
+        USER_ID,
+      );
+
+      expect(taskUpdateMany).toHaveBeenCalledTimes(1);
+      expect(taskFindMany).not.toHaveBeenCalled();
     });
   });
 

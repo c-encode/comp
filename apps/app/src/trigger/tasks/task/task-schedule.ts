@@ -5,6 +5,7 @@ import { logger, schedules } from '@trigger.dev/sdk';
 import { isUserUnsubscribed, TaskStatusNotificationEmail } from '@trycompai/email';
 import { sendEmailViaApi } from '../../lib/send-email-via-api';
 
+import { isReviewDue } from './review-due';
 import { getTargetStatus } from './task-schedule-helpers';
 
 export const taskSchedule = schedules.task({
@@ -83,50 +84,10 @@ export const taskSchedule = schedules.task({
       },
     });
 
-    // FIle all tasks past their review deadline.
-    const addDaysToDate = (date: Date, days: number) => {
-      const result = new Date(date.getTime());
-      result.setDate(result.getDate() + days);
-      return result;
-    };
-
-    const addMonthsToDate = (date: Date, months: number) => {
-      const result = new Date(date.getTime());
-      const originalDayOfMonth = result.getDate();
-      result.setMonth(result.getMonth() + months);
-      // Handle month rollover (e.g., Jan 31 + 1 month -> Feb 28/29)
-      if (result.getDate() < originalDayOfMonth) {
-        result.setDate(0);
-      }
-      return result;
-    };
-
-    const overdueTasks = candidateTasks.filter((task) => {
-      if (!task.reviewDate || !task.frequency) return false;
-
-      let nextDueDate: Date | null = null;
-      switch (task.frequency) {
-        case 'daily':
-          nextDueDate = addDaysToDate(task.reviewDate, 1);
-          break;
-        case 'weekly':
-          nextDueDate = addDaysToDate(task.reviewDate, 7);
-          break;
-        case 'monthly':
-          nextDueDate = addMonthsToDate(task.reviewDate, 1);
-          break;
-        case 'quarterly':
-          nextDueDate = addMonthsToDate(task.reviewDate, 3);
-          break;
-        case 'yearly':
-          nextDueDate = addMonthsToDate(task.reviewDate, 12);
-          break;
-        default:
-          nextDueDate = null;
-      }
-
-      return nextDueDate !== null && nextDueDate <= now;
-    });
+    // reviewDate is the next due date (set when the task was marked done).
+    const overdueTasks = candidateTasks.filter((task) =>
+      isReviewDue({ reviewDate: task.reviewDate, frequency: task.frequency, now }),
+    );
 
     logger.info(`Found ${overdueTasks.length} tasks past their computed review deadline`);
 
