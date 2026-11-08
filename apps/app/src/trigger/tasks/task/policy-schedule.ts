@@ -164,7 +164,7 @@ export const policySchedule = schedules.task({
       // Log details about updated policies
       overduePolicies.forEach((policy) => {
         logger.info(
-          `Updated policy "${policy.name}" (${policy.id}) from org "${policy.organization.name}" - frequency ${policy.frequency} - last reviewed ${policy.reviewDate?.toISOString()}`,
+          `Updated policy "${policy.name}" (${policy.id}) from org "${policy.organization.name}" - frequency ${policy.frequency} - review was due ${policy.reviewDate?.toISOString()}`,
         );
       });
 

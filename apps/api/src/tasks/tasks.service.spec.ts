@@ -256,8 +256,24 @@ describe('TasksService approval gating', () => {
       expect(byIds).toEqual({
         tsk_q: new Date(2027, 1, 8),
         tsk_y: new Date(2027, 10, 8),
-        tsk_none: null,
+        // Same as a single-task update: no frequency falls back to one year.
+        tsk_none: new Date(2027, 10, 8),
       });
+    });
+
+    it('approval ON: bulk done only moves review dates of tasks the status update touched', async () => {
+      orgFindUnique.mockResolvedValue({ evidenceApprovalEnabled: true });
+      taskUpdateMany.mockResolvedValue({ count: 1 });
+
+      await service.updateTasksStatus(
+        ORG_ID,
+        [TASK_ID],
+        TaskStatus.done,
+        undefined,
+        USER_ID,
+      );
+
+      expect(taskFindMany.mock.calls[0][0].where.approverId).toBeNull();
     });
 
     it('bulk done with an explicit reviewDate keeps it and does not recompute', async () => {

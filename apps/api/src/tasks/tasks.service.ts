@@ -407,7 +407,11 @@ export class TasksService {
       }
 
       if (status === TaskStatus.done && reviewDate === undefined) {
-        await setNextReviewDatesForDoneTasks({ organizationId, taskIds });
+        await setNextReviewDatesForDoneTasks({
+          organizationId,
+          taskIds,
+          onlyWithoutApprover: evidenceApprovalEnabled,
+        });
       }
 
       // Send notifications (fire-and-forget, don't block response)
