@@ -893,8 +893,9 @@ export class TasksService {
     },
   ): Promise<TaskResponseDto> {
     try {
-      // Get automation status from template if one is selected
-      let automationStatus: 'AUTOMATED' | 'MANUAL' = 'AUTOMATED';
+      // A template task inherits the template's automation status. A custom
+      // task has no checks or automations behind it, so it starts MANUAL.
+      let automationStatus: 'AUTOMATED' | 'MANUAL' = 'MANUAL';
       if (createData.taskTemplateId) {
         const template = await db.frameworkEditorTaskTemplate.findUnique({
           where: { id: createData.taskTemplateId },
