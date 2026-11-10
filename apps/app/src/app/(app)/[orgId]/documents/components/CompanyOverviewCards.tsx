@@ -17,6 +17,11 @@ import {
 import Link from 'next/link';
 import { useMemo } from 'react';
 import useSWR from 'swr';
+import { CustomDocumentCard } from '../custom/components/CustomDocumentCard';
+import { DocumentSectionHeading } from '../custom/components/DocumentSectionHeading';
+import { ManageDocumentsToolbar } from '../custom/components/ManageDocumentsToolbar';
+import { useCustomDocumentTypes, useDocumentSections } from '../custom/hooks/use-custom-documents';
+import { buildDocumentPageSections } from '../custom/lib/document-sections';
 import { evidenceFormDefinitionList, meetingSubTypeValues } from '../forms';
 import { useIso27001FrameworkId } from '../isms/hooks/useIso27001FrameworkId';
 import { SOAOverviewCard } from './SOAOverviewCard';
@@ -145,17 +150,18 @@ export function CompanyOverviewCards({ organizationId }: { organizationId: strin
 
   const visibleForms = useMemo(() => evidenceFormDefinitionList.filter((form) => !form.hidden), []);
 
-  const categories = useMemo(() => {
-    const map = new Map<string, typeof evidenceFormDefinitionList>();
-    for (const form of visibleForms) {
-      const cat = form.category;
-      if (!map.has(cat)) {
-        map.set(cat, []);
-      }
-      map.get(cat)!.push(form);
-    }
-    return map;
-  }, [visibleForms]);
+  const { data: sectionsData } = useDocumentSections(organizationId);
+  const { data: customTypes } = useCustomDocumentTypes(organizationId);
+
+  const pageSections = useMemo(
+    () =>
+      buildDocumentPageSections({
+        builtInForms: visibleForms,
+        sections: Array.isArray(sectionsData?.sections) ? sectionsData.sections : [],
+        customTypes: Array.isArray(customTypes) ? customTypes : [],
+      }),
+    [visibleForms, sectionsData, customTypes],
+  );
 
   return (
     <Stack gap="6">
@@ -165,37 +171,56 @@ export function CompanyOverviewCards({ organizationId }: { organizationId: strin
           iso27001FrameworkId={iso27001FrameworkId}
         />
       )}
-      {Array.from(categories.entries()).map(([category, forms]) => (
-        <div key={category} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Text size="lg" weight="semibold">
-              {category}
+      <ManageDocumentsToolbar organizationId={organizationId} />
+      {pageSections.map((section) => (
+        <div key={section.key} className="space-y-3">
+          <DocumentSectionHeading
+            organizationId={organizationId}
+            name={section.name}
+            count={section.builtInForms.length + section.customTypes.length}
+            placement={
+              section.customSection
+                ? `section:${section.customSection.id}`
+                : `builtin:${section.name}`
+            }
+            customSection={section.customSection}
+          />
+          {section.builtInForms.length + section.customTypes.length === 0 ? (
+            <Text size="sm" variant="muted">
+              No document types in this section yet.
             </Text>
-            <Badge variant="secondary">{forms.length}</Badge>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {forms.map((form) => (
-              <Link key={form.type} href={`/${organizationId}/documents/${form.type}`}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{form.title}</CardTitle>
-                    <div className="line-clamp-1">
-                      <CardDescription>
-                        {conciseFormDescriptions[form.type] ?? form.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <StatusBadge
-                      statuses={statuses}
-                      form={form}
-                      activeIssues={activeIssueCounts[form.type] ?? 0}
-                    />
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {section.builtInForms.map((form) => (
+                <Link key={form.type} href={`/${organizationId}/documents/${form.type}`}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{form.title}</CardTitle>
+                      <div className="line-clamp-1">
+                        <CardDescription>
+                          {conciseFormDescriptions[form.type] ?? form.description}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <StatusBadge
+                        statuses={statuses}
+                        form={form}
+                        activeIssues={activeIssueCounts[form.type] ?? 0}
+                      />
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+              {section.customTypes.map((type) => (
+                <CustomDocumentCard
+                  key={type.id}
+                  organizationId={organizationId}
+                  documentType={type}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </Stack>

@@ -1,0 +1,65 @@
+// Organization-defined document sections and types for the Documents page.
+// Built-in document types live in the EvidenceFormType enum; these tables
+// let an organization add its own alongside them without schema changes.
+
+model DocumentSection {
+  id             String   @id @default(dbgenerated("generate_prefixed_cuid('dsc'::text)"))
+  organizationId String
+  name           String
+  position       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization  Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  documentTypes CustomDocumentType[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model CustomDocumentType {
+  id              String   @id @default(dbgenerated("generate_prefixed_cuid('cdt'::text)"))
+  organizationId  String
+  title           String
+  description     String   @default("")
+  // Exactly one of sectionId (a custom section) or builtInCategory (a
+  // built-in section heading such as "Security") places the type on the page.
+  sectionId       String?
+  builtInCategory String?
+  // Field definitions, validated by customDocumentFieldsSchema in @trycompai/company.
+  fields          Json
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  section      DocumentSection?           @relation(fields: [sectionId], references: [id], onDelete: NoAction)
+  createdBy    User?                      @relation("CustomDocumentTypeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  submissions  CustomDocumentSubmission[]
+
+  @@index([organizationId])
+  @@index([sectionId])
+}
+
+model CustomDocumentSubmission {
+  id             String    @id @default(dbgenerated("generate_prefixed_cuid('cds'::text)"))
+  organizationId String
+  documentTypeId String
+  submittedById  String?
+  submittedAt    DateTime  @default(now())
+  data           Json
+  status         String    @default("pending")
+  reviewedById   String?
+  reviewedAt     DateTime?
+  reviewReason   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // NoAction (checked at statement end, so org cascades still work): a type with submissions cannot be deleted, so archived records survive.
+  documentType CustomDocumentType @relation(fields: [documentTypeId], references: [id], onDelete: NoAction)
+  submittedBy  User?              @relation("CustomDocumentSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy   User?              @relation("CustomDocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, documentTypeId, submittedAt])
+}

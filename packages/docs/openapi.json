@@ -26674,6 +26674,843 @@
           "name": "undo-vendor-revocation"
         }
       }
+    },
+    "/v1/custom-documents/sections": {
+      "get": {
+        "description": "Lists the built-in and custom section headings on the Documents page. Use before creating a document type to pick its section.",
+        "operationId": "CustomDocumentTypesController_listSections_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "List document sections",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "list-document-sections"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "List document sections | Comp AI API",
+            "sidebarTitle": "List document sections",
+            "description": "Lists the built-in and custom section headings on the Documents page. Use before creating a document type to pick its section.",
+            "og:title": "List document sections | Comp AI API",
+            "og:description": "Lists the built-in and custom section headings on the Documents page. Use before creating a document type to pick its section."
+          }
+        }
+      },
+      "post": {
+        "description": "Create a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentTypesController_createSection_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentSectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Create a document section",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "create-document-section"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Create a document section | Comp AI API",
+            "sidebarTitle": "Create a document section",
+            "description": "Create a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under.",
+            "og:title": "Create a document section | Comp AI API",
+            "og:description": "Create a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/sections/{sectionId}": {
+      "patch": {
+        "description": "Rename or reorder a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentTypesController_updateSection_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentSectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Rename or reorder a document section",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "update-document-section"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Rename or reorder a document section | Comp AI API",
+            "sidebarTitle": "Rename or reorder a document section",
+            "description": "Rename or reorder a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams.",
+            "og:title": "Rename or reorder a document section | Comp AI API",
+            "og:description": "Rename or reorder a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams."
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentTypesController_deleteSection_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Delete a document section",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "delete-document-section"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Delete a document section | Comp AI API",
+            "sidebarTitle": "Delete a document section",
+            "description": "Delete a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under.",
+            "og:title": "Delete a document section | Comp AI API",
+            "og:description": "Delete a document section in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/types": {
+      "get": {
+        "description": "List custom document types in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentTypesController_listTypes_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "List custom document types",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "list-custom-document-types"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "List custom document types | Comp AI API",
+            "sidebarTitle": "List custom document types",
+            "description": "List custom document types in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports.",
+            "og:title": "List custom document types | Comp AI API",
+            "og:description": "List custom document types in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports."
+          }
+        }
+      },
+      "post": {
+        "description": "Defines a new document type (e.g. Architecture Diagram) with its fields and section, so records can be archived under Documents.",
+        "operationId": "CustomDocumentTypesController_createType_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomDocumentTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Create a custom document type",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "create-custom-document-type"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Create a custom document type | Comp AI API",
+            "sidebarTitle": "Create a custom document type",
+            "description": "Defines a new document type (e.g. Architecture Diagram) with its fields and section, so records can be archived under Documents.",
+            "og:title": "Create a custom document type | Comp AI API",
+            "og:description": "Defines a new document type (e.g. Architecture Diagram) with its fields and section, so records can be archived under Documents."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/types/{typeId}": {
+      "get": {
+        "description": "Get a custom document type in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentTypesController_getType_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Get a custom document type",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "get-custom-document-type"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Get a custom document type | Comp AI API",
+            "sidebarTitle": "Get a custom document type",
+            "description": "Get a custom document type in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports.",
+            "og:title": "Get a custom document type | Comp AI API",
+            "og:description": "Get a custom document type in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports."
+          }
+        }
+      },
+      "patch": {
+        "description": "Changes a custom document type title, description, section or fields. Keep existing field keys so past submissions stay readable.",
+        "operationId": "CustomDocumentTypesController_updateType_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomDocumentTypeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Update a custom document type",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "update-custom-document-type"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Update a custom document type | Comp AI API",
+            "sidebarTitle": "Update a custom document type",
+            "description": "Changes a custom document type title, description, section or fields. Keep existing field keys so past submissions stay readable.",
+            "og:title": "Update a custom document type | Comp AI API",
+            "og:description": "Changes a custom document type title, description, section or fields. Keep existing field keys so past submissions stay readable."
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a custom document type in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentTypesController_deleteType_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Delete a custom document type",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "delete-custom-document-type"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Delete a custom document type | Comp AI API",
+            "sidebarTitle": "Delete a custom document type",
+            "description": "Delete a custom document type in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports.",
+            "og:title": "Delete a custom document type | Comp AI API",
+            "og:description": "Delete a custom document type in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/types/{typeId}/submissions": {
+      "get": {
+        "description": "Lists archived records for one custom document type, newest first, with fresh file download links. Supports search, limit and offset.",
+        "operationId": "CustomDocumentSubmissionsController_list_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "List custom document submissions",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "list-custom-document-submissions"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "List custom document submissions | Comp AI API",
+            "sidebarTitle": "List custom document submissions",
+            "description": "Lists archived records for one custom document type, newest first, with fresh file download links. Supports search, limit and offset.",
+            "og:title": "List custom document submissions | Comp AI API",
+            "og:description": "Lists archived records for one custom document type, newest first, with fresh file download links. Supports search, limit and offset."
+          }
+        }
+      },
+      "post": {
+        "description": "Archives a new record for a custom document type. data holds submissionDate plus one value per field key; it is validated against the type.",
+        "operationId": "CustomDocumentSubmissionsController_submit_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitCustomDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Submit a custom document",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "submit-custom-document"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Submit a custom document | Comp AI API",
+            "sidebarTitle": "Submit a custom document",
+            "description": "Archives a new record for a custom document type. data holds submissionDate plus one value per field key; it is validated against the type.",
+            "og:title": "Submit a custom document | Comp AI API",
+            "og:description": "Archives a new record for a custom document type. data holds submissionDate plus one value per field key; it is validated against the type."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/types/{typeId}/uploads": {
+      "post": {
+        "description": "Stores a file for a custom document file field and returns the object to put in the submission data. AI clients pass s3Key from /v1/uploads/presign.",
+        "operationId": "CustomDocumentSubmissionsController_upload_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCustomDocumentFileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Upload a file for a custom document",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "upload-custom-document-file"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Upload a file for a custom document | Comp AI API",
+            "sidebarTitle": "Upload a file for a custom document",
+            "description": "Stores a file for a custom document file field and returns the object to put in the submission data. AI clients pass s3Key from /v1/uploads/presign.",
+            "og:title": "Upload a file for a custom document | Comp AI API",
+            "og:description": "Stores a file for a custom document file field and returns the object to put in the submission data. AI clients pass s3Key from /v1/uploads/presign."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/types/{typeId}/submissions/{submissionId}": {
+      "get": {
+        "description": "Get a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentSubmissionsController_get_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "submissionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Get a custom document submission",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "get-custom-document-submission"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Get a custom document submission | Comp AI API",
+            "sidebarTitle": "Get a custom document submission",
+            "description": "Get a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams.",
+            "og:title": "Get a custom document submission | Comp AI API",
+            "og:description": "Get a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams."
+          }
+        }
+      },
+      "delete": {
+        "description": "Delete a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentSubmissionsController_remove_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "submissionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Delete a custom document submission",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "delete-custom-document-submission"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Delete a custom document submission | Comp AI API",
+            "sidebarTitle": "Delete a custom document submission",
+            "description": "Delete a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams.",
+            "og:title": "Delete a custom document submission | Comp AI API",
+            "og:description": "Delete a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams."
+          }
+        }
+      }
+    },
+    "/v1/custom-documents/types/{typeId}/submissions/{submissionId}/review": {
+      "patch": {
+        "description": "Review a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.",
+        "operationId": "CustomDocumentSubmissionsController_review_v1",
+        "parameters": [
+          {
+            "name": "X-Organization-Id",
+            "in": "header",
+            "description": "Organization ID (required for session auth, optional for API key auth)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "typeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "submissionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewCustomDocumentSubmissionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "summary": "Review a custom document submission",
+        "tags": [
+          "Custom Documents"
+        ],
+        "x-speakeasy-mcp": {
+          "name": "review-custom-document-submission"
+        },
+        "x-mint": {
+          "metadata": {
+            "title": "Review a custom document submission | Comp AI API",
+            "sidebarTitle": "Review a custom document submission",
+            "description": "Review a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams.",
+            "og:title": "Review a custom document submission | Comp AI API",
+            "og:description": "Review a custom document submission in Comp AI. Define custom document sections and types, then archive, review, and export records such as diagrams."
+          }
+        }
+      }
     }
   },
   "info": {
@@ -26821,6 +27658,10 @@
     {
       "name": "Vendors",
       "description": "Manage third-party vendors, global vendor search, risk assessment triggers, and Trust Center vendor visibility."
+    },
+    {
+      "name": "Custom Documents",
+      "description": "Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents."
     }
   ],
   "servers": [
@@ -31668,6 +32509,225 @@
             "description": "Key of an evidence file already uploaded via /v1/uploads/presign (purpose=evidence). The server fetches the bytes from storage — no base64 needed. Provide fileData or s3Key (not both)."
           }
         }
+      },
+      "CreateDocumentSectionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Section heading shown on the Documents page",
+            "example": "Architecture"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateDocumentSectionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New section heading",
+            "example": "Architecture & Data Flow"
+          },
+          "position": {
+            "type": "number",
+            "description": "Sort position; lower comes first",
+            "example": 0
+          }
+        }
+      },
+      "CustomDocumentFieldOptionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "Production"
+          },
+          "value": {
+            "type": "string",
+            "example": "production"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ]
+      },
+      "CustomDocumentFieldDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable key under which the value is stored. Letters, digits, _; starts with a letter.",
+            "example": "diagramFile"
+          },
+          "label": {
+            "type": "string",
+            "example": "Diagram file"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "textarea",
+              "date",
+              "select",
+              "file"
+            ],
+            "example": "file"
+          },
+          "required": {
+            "type": "boolean",
+            "example": true
+          },
+          "description": {
+            "type": "string",
+            "example": "PDF or PNG export of the diagram"
+          },
+          "options": {
+            "description": "Required for select fields",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomDocumentFieldOptionDto"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "required"
+        ]
+      },
+      "CreateCustomDocumentTypeDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Architecture & Data Flow Diagram"
+          },
+          "description": {
+            "type": "string",
+            "example": "System architecture and PHI data flow, reviewed yearly."
+          },
+          "sectionId": {
+            "type": "object",
+            "description": "Custom section id. Set this or builtInCategory.",
+            "example": "dsc_abc123"
+          },
+          "builtInCategory": {
+            "type": "object",
+            "description": "Built-in section name (Governance, Security, People). Set this or sectionId.",
+            "example": "Security"
+          },
+          "fields": {
+            "description": "Fields collected on each submission",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomDocumentFieldDto"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "fields"
+        ]
+      },
+      "UpdateCustomDocumentTypeDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Architecture & Data Flow Diagram"
+          },
+          "description": {
+            "type": "string",
+            "example": "System architecture and PHI data flow."
+          },
+          "sectionId": {
+            "type": "object",
+            "description": "Custom section id. Send with builtInCategory: null to move.",
+            "example": "dsc_abc123"
+          },
+          "builtInCategory": {
+            "type": "object",
+            "description": "Built-in section name. Send with sectionId: null to move.",
+            "example": "Security"
+          },
+          "fields": {
+            "description": "Replaces the field list. Keep existing keys so past submissions stay readable.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomDocumentFieldDto"
+            }
+          }
+        }
+      },
+      "UploadCustomDocumentFileDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "architecture.pdf"
+          },
+          "fileType": {
+            "type": "string",
+            "example": "application/pdf"
+          },
+          "fileData": {
+            "type": "string",
+            "description": "Base64 file content — web UI only. AI clients use s3Key."
+          },
+          "s3Key": {
+            "type": "string",
+            "description": "Key returned by /v1/uploads/presign.",
+            "example": "org_x/uploads/file.pdf"
+          }
+        },
+        "required": [
+          "fileName",
+          "fileType"
+        ]
+      },
+      "SubmitCustomDocumentDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "submissionDate (YYYY-MM-DD) plus one value per field key. File fields take the object returned by the upload endpoint.",
+            "example": {
+              "submissionDate": "2026-11-09",
+              "notes": "Reviewed by SPO"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "ReviewCustomDocumentSubmissionDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "example": "approved"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Required when rejecting",
+            "example": "Diagram is out of date"
+          }
+        },
+        "required": [
+          "action"
+        ]
       }
     }
   },

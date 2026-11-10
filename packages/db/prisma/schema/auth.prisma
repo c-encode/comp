@@ -24,6 +24,9 @@ model User {
   fleetPolicyResults         FleetPolicyResult[]
   evidenceSubmissions        EvidenceSubmission[] @relation("EvidenceSubmitter")
   evidenceReviews            EvidenceSubmission[] @relation("EvidenceReviewer")
+  customDocumentTypes        CustomDocumentType[]       @relation("CustomDocumentTypeCreator")
+  customDocumentSubmissions  CustomDocumentSubmission[] @relation("CustomDocumentSubmitter")
+  customDocumentReviews      CustomDocumentSubmission[] @relation("CustomDocumentReviewer")
   adminFindings              Finding[]            @relation("AdminFindingCreator")
   timelinePhaseCompletions   TimelinePhase[]
   lockedTimelineInstances    TimelineInstance[]   @relation("TimelineInstanceLockedBy")

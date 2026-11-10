@@ -93,6 +93,17 @@ actions:
     remove: true
   - target: "$.components.schemas.CompleteChecklistItemDto.properties.fileData"
     remove: true
+  # Custom document files: create-upload-url(purpose=document) -> PUT -> pass s3Key
+  # to upload-custom-document-file, then put the returned file object in the
+  # record's file field when calling submit-custom-document.
+  - target: "$.components.schemas.UploadCustomDocumentFileDto.properties.fileData"
+    remove: true
+  - target: "$.components.schemas.UploadCustomDocumentFileDto.properties.s3Key"
+    update:
+      description: >-
+        The file to attach. Call create-upload-url with purpose=document, PUT the
+        raw bytes to the returned URL, then pass its s3Key here. Never send file
+        contents inline.
 
   # 10-11. Disable the automation-authoring tools for MCP. Creating a working
   #   automation requires generating its evidence-collection SCRIPT, and that
