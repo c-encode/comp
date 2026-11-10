@@ -72,6 +72,10 @@ export const PUBLIC_TAG_METADATA: Record<string, PublicTagMetadata> = {
     description:
       'Export all organization evidence for an auditor review package.',
   },
+  'Custom Documents': {
+    description:
+      'Define custom document sections and types, then archive, review, and export records such as diagrams and reports under Documents.',
+  },
   'Evidence Forms': {
     description:
       'Collect, review, upload, and export structured evidence submissions for compliance tasks and document requirements.',

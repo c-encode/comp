@@ -45,6 +45,7 @@ import { AssistantChatModule } from './assistant-chat/assistant-chat.module';
 import { OrgChartModule } from './org-chart/org-chart.module';
 import { TrainingModule } from './training/training.module';
 import { EvidenceFormsModule } from './evidence-forms/evidence-forms.module';
+import { CustomDocumentsModule } from './custom-documents/custom-documents.module';
 import { FrameworksModule } from './frameworks/frameworks.module';
 import { FrameworkVersionsModule } from './framework-editor-versions/framework-versions.module';
 import { AuditModule } from './audit/audit.module';
@@ -119,6 +120,7 @@ import { OffboardingChecklistModule } from './offboarding-checklist/offboarding-
     TrainingModule,
     OrgChartModule,
     EvidenceFormsModule,
+    CustomDocumentsModule,
     FrameworksModule,
     FrameworkVersionsModule,
     RolesModule,
