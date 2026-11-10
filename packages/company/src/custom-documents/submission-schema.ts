@@ -2,16 +2,16 @@ import { z } from 'zod';
 import { evidenceFormFileSchema } from '../evidence-forms/file-schema';
 import type { CustomDocumentField } from './schemas';
 
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
-
 function requiredMessage(label: string): string {
   return `${label} is required`;
 }
 
 function dateSchema(label: string) {
-  return z
-    .string({ error: requiredMessage(label) })
-    .regex(ISO_DATE_PATTERN, `${label} must be a date`);
+  // A real calendar date in YYYY-MM-DD form; rejects 2026-99-99 and trailing text.
+  return z.iso.date({
+    error: (issue) =>
+      issue.input === undefined ? requiredMessage(label) : `${label} must be a valid date (YYYY-MM-DD)`,
+  });
 }
 
 function fieldValueSchema(field: CustomDocumentField): z.ZodType {

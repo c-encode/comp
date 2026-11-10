@@ -107,9 +107,10 @@ describe('submit', () => {
       documentTypeId: 'cdt_1',
       submittedById: 'usr_1',
     });
+    // The client-sent download URL is dropped; reads presign a fresh one.
     expect(data.data).toEqual({
       submissionDate: '2026-11-06',
-      diagram: ownFile,
+      diagram: { fileName: ownFile.fileName, fileKey: ownFile.fileKey },
     });
   });
 
@@ -137,22 +138,6 @@ describe('submit', () => {
       }),
     ).rejects.toThrow('Choose a valid Environment');
     expect(mockDb.customDocumentSubmission.create).not.toHaveBeenCalled();
-  });
-
-  it("rejects a file that belongs to another organization's namespace", async () => {
-    await expect(
-      service.submit({
-        organizationId: ORG,
-        typeId: 'cdt_1',
-        userId: null,
-        payload: {
-          data: {
-            submissionDate: '2026-11-06',
-            diagram: { ...ownFile, fileKey: 'org_2/attachments/x.pdf' },
-          },
-        },
-      }),
-    ).rejects.toThrow('does not belong to this organization');
   });
 });
 

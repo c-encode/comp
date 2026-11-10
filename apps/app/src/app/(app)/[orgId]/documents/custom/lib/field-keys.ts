@@ -1,4 +1,6 @@
-const RESERVED_KEYS = new Set(['submissionDate']);
+import { CUSTOM_DOCUMENT_RESERVED_KEYS } from '@trycompai/company';
+
+const RESERVED_KEYS: ReadonlySet<string> = new Set(CUSTOM_DOCUMENT_RESERVED_KEYS);
 
 /**
  * Turn a field label into a stable camelCase key ("Diagram file" ->

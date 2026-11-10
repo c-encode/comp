@@ -119,7 +119,7 @@ export function DocumentTypeForm({
         <Alert
           variant="warning"
           title="This type already has records"
-          description="Field changes apply to new records. Existing records keep their stored values; values for removed fields are hidden but not deleted."
+          description="Field changes apply to new records. Existing records keep their stored values, and values for removed fields still show on each record."
         />
       )}
 

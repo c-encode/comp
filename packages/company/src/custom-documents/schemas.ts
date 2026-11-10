@@ -6,8 +6,20 @@ export const CUSTOM_DOCUMENT_FIELD_TYPES = ['text', 'textarea', 'date', 'select'
 export const customDocumentFieldTypeSchema = z.enum(CUSTOM_DOCUMENT_FIELD_TYPES);
 export type CustomDocumentFieldType = z.infer<typeof customDocumentFieldTypeSchema>;
 
-/** Every submission carries the date the record is for; field keys may not shadow it. */
-export const CUSTOM_DOCUMENT_RESERVED_KEYS = ['submissionDate'] as const;
+/**
+ * Keys a field may not use: `submissionDate` is every record's own date, and the
+ * rest are Object.prototype names that break parsing a record.
+ */
+export const CUSTOM_DOCUMENT_RESERVED_KEYS = [
+  'submissionDate',
+  'constructor',
+  'hasOwnProperty',
+  'isPrototypeOf',
+  'propertyIsEnumerable',
+  'toLocaleString',
+  'toString',
+  'valueOf',
+] as const;
 
 const FIELD_KEY_PATTERN = /^[a-z][a-zA-Z0-9_]{0,63}$/;
 

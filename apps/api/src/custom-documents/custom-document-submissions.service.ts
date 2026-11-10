@@ -13,10 +13,11 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 import {
-  assertFileKeysBelongToOrganization,
+  assertFileKeysBelongToType,
   decodeBase64File,
   MAX_CUSTOM_DOCUMENT_FILE_BYTES,
   refreshFileUrls,
+  withoutDownloadUrls,
 } from './custom-document-files';
 import { CustomDocumentTypesService } from './custom-document-types.service';
 import { parseOrThrow } from './zod-errors';
@@ -82,7 +83,6 @@ export class CustomDocumentSubmissionsService {
         ...submission,
         data: await refreshFileUrls({
           data: z.record(z.string(), z.unknown()).parse(submission.data),
-          fields: type.fields,
           organizationId: params.organizationId,
           presign: this.presign,
         }),
@@ -126,7 +126,6 @@ export class CustomDocumentSubmissionsService {
         ...submission,
         data: await refreshFileUrls({
           data: z.record(z.string(), z.unknown()).parse(submission.data),
-          fields: type.fields,
           organizationId: params.organizationId,
           presign: this.presign,
         }),
@@ -147,10 +146,10 @@ export class CustomDocumentSubmissionsService {
       rawData,
     );
 
-    assertFileKeysBelongToOrganization({
+    assertFileKeysBelongToType({
       data,
-      fields: type.fields,
       organizationId: params.organizationId,
+      typeId: type.id,
     });
 
     return db.customDocumentSubmission.create({
@@ -162,8 +161,10 @@ export class CustomDocumentSubmissionsService {
         data: z
           .record(z.string(), z.json())
           .parse(
-            Object.fromEntries(
-              Object.entries(data).filter(([, value]) => value !== undefined),
+            withoutDownloadUrls(
+              Object.fromEntries(
+                Object.entries(data).filter(([, value]) => value !== undefined),
+              ),
             ),
           ),
       },

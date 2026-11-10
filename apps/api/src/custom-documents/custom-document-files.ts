@@ -1,5 +1,4 @@
 import { BadRequestException } from '@nestjs/common';
-import type { CustomDocumentField } from '@trycompai/company';
 
 export const MAX_CUSTOM_DOCUMENT_FILE_BYTES = 100 * 1024 * 1024;
 
@@ -18,53 +17,75 @@ function isStoredFile(value: unknown): value is StoredFile {
   );
 }
 
-/** Values of this type's file fields that are present in the submission data. */
-function fileEntries(params: {
-  data: Record<string, unknown>;
-  fields: ReadonlyArray<CustomDocumentField>;
-}): Array<[string, StoredFile]> {
-  const entries: Array<[string, StoredFile]> = [];
-  for (const field of params.fields) {
-    if (field.type !== 'file') continue;
-    const value = params.data[field.key];
-    if (isStoredFile(value)) entries.push([field.key, value]);
-  }
-  return entries;
+/**
+ * Every file-shaped value in the record, whatever the type's fields say now.
+ * Matching on the stored value (not the current field list) keeps files on old
+ * records reachable after a field is removed or changes type.
+ */
+function fileEntries(data: Record<string, unknown>): Array<[string, StoredFile]> {
+  return Object.entries(data).filter((entry): entry is [string, StoredFile] =>
+    isStoredFile(entry[1]),
+  );
+}
+
+/** S3 folder that `uploadFile` writes this type's files into. */
+export function customDocumentFilePrefix(params: {
+  organizationId: string;
+  typeId: string;
+}): string {
+  return `${params.organizationId}/attachments/custom-documents/${params.typeId}/`;
+}
+
+function isKeyUnder(fileKey: string, prefix: string): boolean {
+  return fileKey.startsWith(prefix) && !fileKey.split('/').includes('..');
 }
 
 /**
- * Reject a submission whose file fields point outside the caller's org
- * namespace — otherwise a caller could submit another org's fileKey and have
- * it presigned on read.
+ * Reject a submission whose files were not uploaded for this type — otherwise
+ * a caller could submit another org's fileKey and have it presigned on read.
  */
-export function assertFileKeysBelongToOrganization(params: {
+export function assertFileKeysBelongToType(params: {
   data: Record<string, unknown>;
-  fields: ReadonlyArray<CustomDocumentField>;
   organizationId: string;
+  typeId: string;
 }): void {
-  const orgPrefix = `${params.organizationId}/`;
-  for (const [, file] of fileEntries(params)) {
-    if (!file.fileKey.startsWith(orgPrefix)) {
+  const prefix = customDocumentFilePrefix(params);
+  for (const [, file] of fileEntries(params.data)) {
+    if (!isKeyUnder(file.fileKey, prefix)) {
       throw new BadRequestException(
-        'Submitted file does not belong to this organization',
+        'Submitted file was not uploaded for this document type',
       );
     }
   }
 }
 
-/** Replace stored (expired) download URLs with fresh presigned ones. */
+/**
+ * Drop client-sent download URLs before storing. They expire, and a client
+ * could send any link; reads presign a fresh URL from the fileKey instead.
+ */
+export function withoutDownloadUrls(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const stored: Record<string, unknown> = { ...data };
+  for (const [key, file] of fileEntries(data)) {
+    const { downloadUrl: _downloadUrl, ...rest } = file;
+    stored[key] = rest;
+  }
+  return stored;
+}
+
+/** Attach fresh presigned download URLs to every file in the record. */
 export async function refreshFileUrls(params: {
   data: Record<string, unknown>;
-  fields: ReadonlyArray<CustomDocumentField>;
   organizationId: string;
   presign: (fileKey: string) => Promise<string>;
 }): Promise<Record<string, unknown>> {
   const refreshed: Record<string, unknown> = { ...params.data };
   const orgPrefix = `${params.organizationId}/`;
-  for (const [key, file] of fileEntries(params)) {
+  for (const [key, file] of fileEntries(params.data)) {
     refreshed[key] = {
       ...file,
-      downloadUrl: file.fileKey.startsWith(orgPrefix)
+      downloadUrl: isKeyUnder(file.fileKey, orgPrefix)
         ? await params.presign(file.fileKey)
         : null,
     };

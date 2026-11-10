@@ -3,6 +3,7 @@ import type { CustomDocumentType } from '../hooks/use-custom-documents';
 import { buildDocumentPageSections } from './document-sections';
 import { DEFAULT_NEW_FIELDS, toApiPayload, toFormValues } from './document-type-form-schema';
 import { toFieldKey } from './field-keys';
+import { labelFromFieldKey, removedFieldValues } from './removed-field-values';
 import { buildSubmissionFormSchema, toSubmissionPayload } from './submission-form-schema';
 
 function customType(overrides: Partial<CustomDocumentType>): CustomDocumentType {
@@ -141,5 +142,31 @@ describe('buildSubmissionFormSchema', () => {
       submissionDate: '2026-11-06',
       document: values.document,
     });
+  });
+});
+
+describe('removedFieldValues', () => {
+  const fields = [{ key: 'notes', label: 'Notes', type: 'textarea' as const, required: false }];
+
+  it('keeps values whose field was removed from the type, so archived files stay visible', () => {
+    const file = { fileName: 'a.pdf', fileKey: 'org_1/a.pdf', downloadUrl: 'https://s3/a' };
+    expect(
+      removedFieldValues({
+        data: { submissionDate: '2026-11-09', notes: 'n', document: file, empty: '' },
+        fields,
+      }),
+    ).toEqual([{ key: 'document', label: 'Document', value: file }]);
+  });
+
+  it('turns stored keys into readable labels', () => {
+    expect(labelFromFieldKey('diagramFile')).toBe('Diagram file');
+    expect(labelFromFieldKey('review_owner2')).toBe('Review owner2');
+  });
+});
+
+describe('reserved field keys', () => {
+  it('never generates a key that shadows the record date or an Object.prototype name', () => {
+    expect(toFieldKey({ label: 'Constructor', existingKeys: [] })).not.toBe('constructor');
+    expect(toFieldKey({ label: 'Submission date', existingKeys: [] })).not.toBe('submissionDate');
   });
 });

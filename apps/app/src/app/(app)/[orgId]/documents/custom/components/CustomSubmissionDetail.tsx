@@ -16,6 +16,7 @@ import {
   unwrap,
   useCustomDocumentSubmission,
 } from '../hooks/use-custom-documents';
+import { removedFieldValues } from '../lib/removed-field-values';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { ReviewSubmissionControls } from './ReviewSubmissionControls';
 import { SubmissionStatusBadge } from './SubmissionStatusBadge';
@@ -86,6 +87,11 @@ export function CustomSubmissionDetail({ organizationId, typeId, submissionId }:
           {documentType.fields.map((field) => (
             <DetailRow key={field.key} label={field.label}>
               {renderSubmissionValue(submission.data[field.key], field)}
+            </DetailRow>
+          ))}
+          {removedFieldValues({ data: submission.data, fields: documentType.fields }).map((entry) => (
+            <DetailRow key={entry.key} label={`${entry.label} (removed field)`}>
+              {renderSubmissionValue(entry.value)}
             </DetailRow>
           ))}
           <DetailRow label="Submitted by">
